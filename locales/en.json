@@ -1,0 +1,87 @@
+{
+  "@@locale": "en",
+  "welcomeTitle": "DevToys",
+  "@welcomeTitle": {
+    "description": "The product name, shown as the welcome page title."
+  },
+  "welcomeSubtitle": "A toolbox for developers.",
+  "@welcomeSubtitle": {
+    "description": "One-line description under the welcome page title."
+  },
+  "welcomeHintSidebar": "Pick a tool from the left.",
+  "@welcomeHintSidebar": {
+    "description": "Welcome page card telling the user to choose a tool in the sidebar."
+  },
+  "welcomeHintTitlebar": "Switch the theme and language from the title bar.",
+  "@welcomeHintTitlebar": {
+    "description": "Welcome page card telling the user where the theme and language controls are."
+  },
+  "tools": "Tools",
+  "@tools": {
+    "description": "Name of the sidebar navigation group in the main window."
+  },
+  "theme": "Theme",
+  "@theme": {
+    "description": "Title and accessibility label of the title bar's theme control."
+  },
+  "language": "Language",
+  "@language": {
+    "description": "Title and accessibility label of the title bar's language control."
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title of the settings dialog and of the title bar button that opens it."
+  },
+  "settingsTheme": "Appearance",
+  "@settingsTheme": {
+    "description": "Heading of the theme choices in the settings dialog."
+  },
+  "themeSystem": "System",
+  "@themeSystem": {
+    "description": "Theme choice that follows the system's light or dark appearance."
+  },
+  "themeLight": "Light",
+  "@themeLight": {
+    "description": "Theme choice that always uses the light appearance."
+  },
+  "themeDark": "Dark",
+  "@themeDark": {
+    "description": "Theme choice that always uses the dark appearance."
+  },
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {
+    "description": "Heading of the language choices in the settings dialog."
+  },
+  "languageSystem": "System",
+  "@languageSystem": {
+    "description": "Language choice that follows the user's preferred languages."
+  },
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "Language choice for English."
+  },
+  "languageChinese": "简体中文",
+  "@languageChinese": {
+    "description": "Language choice for Simplified Chinese."
+  },
+  "openSettings": "Open settings",
+  "@openSettings": {
+    "description": "Tooltip of the title bar button that opens the settings dialog."
+  },
+  "close": "Close",
+  "@close": {
+    "description": "Button that closes the settings dialog."
+  },
+  "launcherEmpty": "The launcher is a skeleton for now.",
+  "@launcherEmpty": {
+    "description": "Placeholder shown in the launcher while it has no results."
+  },
+  "launcherOpenMain": "Open main window",
+  "@launcherOpenMain": {
+    "description": "Launcher button that shows the main window."
+  },
+  "launcherQuit": "Quit",
+  "@launcherQuit": {
+    "description": "Launcher button that quits the application."
+  }
+}
