@@ -1,0 +1,15 @@
+{
+  "name": "DevToys",
+  "identifier": "dev.neuz.devtoys",
+  "version": "0.0.1",
+  "main": "./cmd",
+  "out": "build",
+  "updates": {
+    "publicKey": "+57OtYSlUXou1OOcim+wh8N4eHw4fXFyw2d4JF6088w=",
+    "github": "Neuz/DevToys"
+  },
+  "resourcesExclude": [
+    "**/*.go",
+    "icon.png"
+  ]
+}
