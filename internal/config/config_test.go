@@ -8,33 +8,33 @@ import (
 
 func TestDefault(t *testing.T) {
 	c := Default()
-	if c.Version != 1 || c.Theme != ThemeSystem || c.SidebarWidth != 220 {
+	if c.Theme != ThemeSystem || c.Locale != LocaleSystem {
 		t.Fatalf("Default() = %+v", c)
 	}
 }
 
 func TestNormalize(t *testing.T) {
-	c := Config{Theme: "nope", SidebarWidth: 100}
+	c := Config{Theme: "nope", Locale: "fr"}
 	got := c.Normalize()
 	if got.Theme != ThemeSystem {
 		t.Fatalf("Theme = %q, want %q", got.Theme, ThemeSystem)
 	}
-	if got.SidebarWidth != 180 {
-		t.Fatalf("SidebarWidth = %d, want 180", got.SidebarWidth)
+	if got.Locale != LocaleSystem {
+		t.Fatalf("Locale = %q, want %q", got.Locale, LocaleSystem)
 	}
 
-	c = Config{Theme: ThemeDark, SidebarWidth: 999}
+	c = Config{Theme: ThemeDark, Locale: LocaleChinese}
 	got = c.Normalize()
 	if got.Theme != ThemeDark {
 		t.Fatalf("Theme = %q, want %q", got.Theme, ThemeDark)
 	}
-	if got.SidebarWidth != 360 {
-		t.Fatalf("SidebarWidth = %d, want 360", got.SidebarWidth)
+	if got.Locale != LocaleChinese {
+		t.Fatalf("Locale = %q, want %q", got.Locale, LocaleChinese)
 	}
 }
 
 func TestLoadMissing(t *testing.T) {
-	got, err := Load(t.TempDir())
+	got, err := LoadFrom(t.TempDir())
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestLoadCorrupt(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, fileName), []byte("{nope"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := Load(dir)
+	got, err := LoadFrom(dir)
 	if err == nil {
 		t.Fatal("Load succeeded, want an error")
 	}
@@ -61,12 +61,11 @@ func TestSaveLoad(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "DevToys")
 	want := Default()
 	want.Theme = ThemeDark
-	want.SidebarWidth = 260
-	want.LastModule = "welcome"
-	if err := want.Save(dir); err != nil {
+	want.Locale = LocaleChinese
+	if err := want.SaveTo(dir); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
-	got, err := Load(dir)
+	got, err := LoadFrom(dir)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}

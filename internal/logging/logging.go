@@ -2,35 +2,64 @@
 package logging
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/Neuz/DevToys/internal/config"
+	"github.com/egoist/mygo"
 )
 
-// New 在 logDir 下以追加方式打开 devtoys.log。dev 为 true 时输出可读文本
-// 并同时写 stderr，级别为 Debug；否则输出 JSON，级别为 Info。
-//
-// 这里有意不做日志轮转：桌面上单个日志文件足够小，轮转留给后续版本。
-// 返回的关闭函数负责关闭文件。
-func New(logDir string, dev bool) (*slog.Logger, func() error, error) {
+const filename = "devtoys.log"
+
+func defaultDir() (string, error) {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, mygo.App.Name()), nil
+}
+
+// New 创建应用日志器。
+// 日志级别根据配置文件中的 LogLevel 设置。
+// 日志文件在 defaultDir 下，文件名是 filename。
+func New(cfg config.Config) (*slog.Logger, func() error, error) {
+	logDir, err := defaultDir()
+	if err != nil {
+		return nil, nil, err
+	}
 	if err := os.MkdirAll(logDir, 0o755); err != nil {
 		return nil, nil, err
 	}
-	f, err := os.OpenFile(filepath.Join(logDir, "devtoys.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	f, err := os.OpenFile(filepath.Join(logDir, filename), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	opts := &slog.HandlerOptions{Level: slog.LevelInfo}
+	lv, err := parseLevelFrom(cfg.LogLevel)
+	if err != nil {
+		lv = slog.LevelInfo
+	}
+	opts := &slog.HandlerOptions{Level: lv}
 	var w io.Writer = f
 	var handler slog.Handler
-	if dev {
-		opts.Level = slog.LevelDebug
+
+	switch opts.Level {
+	case slog.LevelDebug:
 		w = io.MultiWriter(f, os.Stderr)
 		handler = slog.NewTextHandler(w, opts)
-	} else {
+	default:
 		handler = slog.NewJSONHandler(w, opts)
 	}
 	return slog.New(handler), f.Close, nil
+}
+
+func parseLevelFrom(s string) (slog.Level, error) {
+	var lv slog.Level
+	if err := lv.UnmarshalText([]byte(s)); err != nil {
+		return lv, fmt.Errorf("解析日志级别 %q: %w", s, err)
+	}
+	return lv, nil
 }

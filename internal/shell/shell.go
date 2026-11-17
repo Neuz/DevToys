@@ -6,10 +6,8 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/Cyenoch/mygoicons/lucide"
 	"github.com/Cyenoch/mygoui"
 	"github.com/Cyenoch/mygoui/form"
-	"github.com/Cyenoch/mygoui/layout"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/internal/contract"
@@ -19,29 +17,23 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// collapsedSidebarWidth 是侧栏折叠成图标轨道时的宽度。
-const collapsedSidebarWidth float32 = 48
-
 // Options 配置主窗口。
 type Options struct {
-	Name, Version string
-	Modules       []contract.Module
-	DefaultID     string
-	SidebarWidth  int
-	ThemeMode     func() config.ThemeMode // 读取当前主题选择
-	Tray          *Tray                   // 非空：常驻托盘，关主窗口只隐藏
-	Settings      func(ctl contract.Controller) contract.Settings
-	OnSwitch      func(id string)        // 当前页面变化时回调，用于持久化
-	OnThemeChange func(config.ThemeMode) // 标题栏切换主题时回调，由 app 保存
-	Log           *slog.Logger           // nil 时使用 slog.Default()
-}
+	Name      string
+	Modules   []contract.Module
+	DefaultID string
 
-// Tray 配置托盘图标与启动器面板。
-type Tray struct {
-	Icon    []byte
-	ToolTip string
-	Width   int
-	Panel   func(ctl contract.Controller) contract.Panel
+	// 主窗口的初始尺寸与最小尺寸（DIP），由调用方决定。
+	Width     int
+	Height    int
+	MinWidth  int
+	MinHeight int
+
+	// Config 是持久化的用户偏好；设置窗口直接读改写它。
+	Config *config.Config
+
+	Tray *Tray        // 非空：常驻托盘，关主窗口只隐藏
+	Log  *slog.Logger // nil 时使用 slog.Default()
 }
 
 // Shell 持有窗口与各功能的运行时状态。
@@ -50,33 +42,30 @@ type Shell struct {
 	modules []contract.Module
 	byID    map[string]contract.Module
 
-	current      string
-	active       string
-	win          *mygo.Window
-	runners      []*task.Runner
-	settings     contract.Settings
-	settingsOpen bool
+	current     string
+	active      string
+	win         *mygo.Window
+	runners     []*task.Runner
+	settings    *settings
+	settingsWin *mygo.Window
 
-	// 侧栏与标题栏由外壳持有的界面状态。
-	sidebarWidth   float32 // 展开宽度，分隔条拖动会改写它
-	collapsedWidth float32 // 折叠后的图标轨道宽度
-	paneSize       float32 // 交给 Scaffold 的当前宽度
-	collapsed      bool
-	themeOpen      bool
-	langOpen       bool
-	themeMode      config.ThemeMode
-	localeTag      string
-	themeState     form.RadioGroupState[config.ThemeMode]
-	langState      form.RadioGroupState[string]
+	// collapsed 由侧栏的折叠按钮改写，决定侧栏面板的宽度。
+	collapsed bool
+
+	// scroll 是内容区的滚动位置，跨帧保存。
+	scroll ui.ScrollState
+
+	// hotkeyGlobal 是已注册的全局快捷键 accelerator，空表示没有。
+	hotkeyGlobal string
+
+	// sidebarHotkey 是应用内折叠/展开侧栏的组合；KeyUnknown 表示未设置。
+	sidebarHotkey form.Hotkey
 
 	log       *slog.Logger
 	quitting  bool
 	closeOnce sync.Once
 
-	tray        *mygo.Tray
-	fly         *mygo.Window
-	panel       contract.Panel
-	panelHeight float32
+	tray *mygo.Tray
 }
 
 // Run 注册外壳的回调；mygo.App.Run 仍由调用方执行。
@@ -84,7 +73,12 @@ func Run(opts Options) error {
 	if len(opts.Modules) == 0 {
 		return errors.New("shell: no modules")
 	}
+	if opts.Config == nil {
+		return errors.New("shell: no config")
+	}
 	s := newShell(opts)
+	// 在 App.Run 之前设置，让首帧就是保存的外观。
+	applyTheme(opts.Config.Theme)
 
 	mygo.App.WhenReady(s.ready)
 	mygo.App.OnSecondInstance(func([]string, string) { s.showMain(s.current) })
@@ -115,33 +109,18 @@ func newShell(opts Options) *Shell {
 	if _, ok := s.byID[s.current]; !ok {
 		s.current = s.modules[0].ID()
 	}
-
-	s.sidebarWidth = float32(opts.SidebarWidth)
-	if s.sidebarWidth <= 0 {
-		s.sidebarWidth = 256
-	}
-	s.collapsedWidth = collapsedSidebarWidth
-	s.paneSize = s.sidebarWidth
-	s.themeMode = config.ThemeSystem
-	if opts.ThemeMode != nil {
-		s.themeMode = normalizeThemeMode(opts.ThemeMode())
-	}
-	s.themeState = form.RadioGroupState[config.ThemeMode]{Selected: &s.themeMode, OnChange: s.changeTheme}
-	s.langState = form.RadioGroupState[string]{Selected: &s.localeTag, OnChange: s.changeLocale}
-	if opts.Settings != nil {
-		s.settings = opts.Settings(controller{s})
-	}
+	s.sidebarHotkey = parseHotkey(opts.Config.Hotkey.App.SidebarToggle)
 	return s
 }
 
 func (s *Shell) ready() {
-	s.localeTag = mygo.App.ChosenLocale()
+	applyLocale(s.opts.Config.Locale)
 	s.win = mygo.NewWindow(mygo.WindowOptions{
 		Title:          s.opts.Name,
-		Width:          1200,
-		Height:         780,
-		MinWidth:       900,
-		MinHeight:      600,
+		Width:          s.opts.Width,
+		Height:         s.opts.Height,
+		MinWidth:       s.opts.MinWidth,
+		MinHeight:      s.opts.MinHeight,
 		StateKey:       "main",
 		TitleBarStyle:  mygo.TitleBarHidden,
 		TitleBarHeight: int(titleBarHeight),
@@ -155,7 +134,9 @@ func (s *Shell) ready() {
 	}
 	mygo.Theme.OnUpdated(s.invalidateAll)
 	mygo.App.OnLocaleChanged(func(string) {
-		s.localeTag = mygo.App.ChosenLocale()
+		if s.settingsWin != nil {
+			s.settingsWin.SetTitle(locales.SettingsTitle())
+		}
 		s.invalidateAll()
 	})
 
@@ -170,115 +151,44 @@ func (s *Shell) ready() {
 	if s.opts.Tray != nil {
 		s.setupTray()
 	}
+	s.bindHotkey(s.opts.Config.Hotkey.Global.WindowToggle)
 	s.activate(s.current)
 }
 
+// view 只做组装：左侧整列 Sidebar，右侧是标题栏与可滚动的内容区。
 func (s *Shell) view(c *ui.Context) {
 	theme.Apply(c)
-	if s.opts.ThemeMode != nil {
-		s.themeMode = normalizeThemeMode(s.opts.ThemeMode())
+	if k := s.sidebarHotkey; k.Key != ui.KeyUnknown {
+		c.OnWindowShortcut(k.Mods, k.Key, s.toggleSidebar)
 	}
-	s.syncSidebarPane()
+	t := theme.Colors(c)
 
-	layout.Scaffold(c, layout.ScaffoldOptions{
-		StartBar: layout.TitleBarOptions{Title: s.opts.Name},
-		TitleBar: layout.TitleBarOptions{
-			MinHeight: titleBarHeight,
-			Title:     s.currentTitle(),
-			Trailing:  func() { s.titleBarTrailing(c) },
-		},
-		Start: &layout.PaneOptions{
-			Label: locales.Tools(),
-			Size:  &s.paneSize,
-			Min:   s.collapsedWidth,
-			Body:  func() { s.sidebar(c) },
-		},
-		Content: func() {
-			if m := s.byID[s.current]; m != nil {
-				m.View(c)
-			}
-		},
-	})
+	m := s.byID[s.current]
 
-	if s.settings != nil {
-		s.settings.View(c, &s.settingsOpen)
-	}
-}
-
-// sidebar 绘制模块导航；条目随模块注册表增长。
-func (s *Shell) sidebar(c *ui.Context) {
-	items := make([]mygoui.SidebarItemOptions, 0, len(s.modules))
-	for _, m := range s.modules {
-		icon := lucide.Wrench()
-		if im, ok := m.(contract.Iconed); ok && im.Icon() != nil {
-			icon = im.Icon()
-		}
-		items = append(items, mygoui.SidebarItemOptions{
-			ID:    m.ID(),
-			Label: m.Title(),
-			Icon:  icon,
+	ui.Row(c).Fill().MinWidth(0).MinHeight(0).Background(t.Background).TextColor(t.Foreground).Children(func() {
+		s.sidebar(c)
+		ui.Column(c).FillHeight().Grow(1).Basis(0).MinWidth(0).MinHeight(0).Children(func() {
+			s.titleBar(c, titleBarOptions{
+				Title: s.opts.Name,
+			})
+			mygoui.ScrollArea(c, &s.scroll, mygoui.ScrollAreaOptions{
+				Axis: mygoui.ScrollVertical,
+			}, func() {
+				if m != nil {
+					m.View(c)
+				}
+			}).FillWidth().Grow(1).Basis(0).MinWidth(0).MinHeight(0)
 		})
-	}
-	mygoui.Sidebar(c, mygoui.SidebarOptions{
-		Selected:       &s.current,
-		Collapsed:      &s.collapsed,
-		Width:          s.sidebarWidth,
-		CollapsedWidth: s.collapsedWidth,
-		Groups: []mygoui.SidebarGroupOptions{{
-			Key:   "modules",
-			Label: locales.Tools(),
-			Items: items,
-		}},
-		OnSelect:         s.activate,
-		OnCollapseChange: s.collapseSidebar,
 	})
 }
 
-// syncSidebarPane 让侧栏面板的宽度跟随折叠状态：展开时使用（可能被分隔条
-// 拖动改写的）展开宽度，折叠时收成图标轨道宽度，这样内容区会跟着一起动。
-func (s *Shell) syncSidebarPane() {
-	if s.collapsed {
-		s.paneSize = s.collapsedWidth
-		return
-	}
-	s.sidebarWidth = s.paneSize
-}
-
-// collapseSidebar 记录折叠切换，并保留展开时的宽度供再次展开使用。
-func (s *Shell) collapseSidebar(collapsed bool) {
-	if collapsed {
-		s.sidebarWidth = s.paneSize
-	} else {
-		s.paneSize = s.sidebarWidth
-	}
-	s.collapsed = collapsed
-}
-
-// currentTitle 是标题栏显示的当前模块标题。
-func (s *Shell) currentTitle() string {
-	if m := s.byID[s.current]; m != nil {
-		return m.Title()
-	}
-	return s.opts.Name
-}
-
-// normalizeThemeMode 把未知的主题选择退回跟随系统。
-func normalizeThemeMode(mode config.ThemeMode) config.ThemeMode {
-	switch mode {
-	case config.ThemeLight, config.ThemeDark, config.ThemeSystem:
-		return mode
-	default:
-		return config.ThemeSystem
-	}
-}
-
-// invalidateAll 让主窗口和托盘面板按新的主题或语言重绘。
+// invalidateAll 让主窗口与设置窗口按新的主题或语言重绘。
 func (s *Shell) invalidateAll() {
 	if s.win != nil {
 		s.win.Invalidate()
 	}
-	if s.fly != nil {
-		s.fly.Invalidate()
+	if s.settingsWin != nil {
+		s.settingsWin.Invalidate()
 	}
 }
 
@@ -300,9 +210,6 @@ func (s *Shell) activate(id string) {
 	if live, ok := s.byID[id].(contract.Live); ok {
 		live.OnActivate()
 	}
-	if s.opts.OnSwitch != nil {
-		s.opts.OnSwitch(id)
-	}
 }
 
 func (s *Shell) showMain(id string) {
@@ -320,27 +227,15 @@ func (s *Shell) showMain(id string) {
 	})
 }
 
-func (s *Shell) openSettings() {
-	if s.settings != nil {
-		s.settings.Open()
-	}
-	s.settingsOpen = true
-	if s.win == nil {
-		return
-	}
-	mygo.RunOnMain(func() {
-		mygo.App.SetActivationPolicy(mygo.ActivationPolicyRegular)
-		s.win.Show()
-		s.win.Focus()
-		s.win.Invalidate()
-	})
-}
-
-// close 关闭所有 runner 并销毁托盘；由 OnBeforeQuit 调用。
+// close 关闭所有 runner、销毁托盘并注销全局快捷键；由 OnBeforeQuit 调用。
 func (s *Shell) close() {
 	s.closeOnce.Do(func() {
 		for _, r := range s.runners {
 			r.Close()
+		}
+		if s.hotkeyGlobal != "" {
+			mygo.GlobalShortcut.Unregister(s.hotkeyGlobal)
+			s.hotkeyGlobal = ""
 		}
 		if s.tray != nil {
 			s.tray.Destroy()
@@ -348,16 +243,7 @@ func (s *Shell) close() {
 	})
 }
 
-// controller 把外壳的能力暴露给功能。
-type controller struct{ s *Shell }
-
-func (c controller) ShowMain(id string) { c.s.showMain(id) }
-
-func (c controller) OpenSettings() { c.s.openSettings() }
-
-func (c controller) Quit() { mygo.App.Quit() }
-
-// host 把 runner 与日志器交给功能模块或面板。
+// host 把 runner 与日志器交给功能模块。
 type host struct {
 	tasks *task.Runner
 	log   *slog.Logger

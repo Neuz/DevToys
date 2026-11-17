@@ -22,7 +22,11 @@ type Host interface {
 // Module 是主窗口中的一个功能页面。
 type Module interface {
 	ID() string
+	// Group 返回侧栏中的分组名，分组顺序取模块注册顺序中首次出现的位置。
+	Group() string
 	Title() string
+	// Icon 返回导航栏使用的图标；返回 nil 时外壳使用通用工具图标。
+	Icon() *ui.SVG
 	Init(h Host)
 	View(c *ui.Context)
 }
@@ -31,33 +35,4 @@ type Module interface {
 type Live interface {
 	OnActivate()
 	OnDeactivate()
-}
-
-// Iconed 是模块可选实现的能力：返回导航栏使用的图标。
-// 未实现时外壳使用通用工具图标。
-type Iconed interface {
-	Icon() *ui.SVG
-}
-
-// Panel 是托盘启动器面板，由 mygo.Flyout 承载。
-type Panel interface {
-	Init(h Host)
-	Show()
-	Hide()
-	View(c *ui.Context)
-	Height() int
-}
-
-// Settings 是设置面板，绘制在主窗口的遮罩层之上。
-type Settings interface {
-	Open()
-	View(c *ui.Context, open *bool)
-}
-
-// Controller 让功能反向控制外壳。
-type Controller interface {
-	// ShowMain 显示主窗口并切换到 id 对应的模块。
-	ShowMain(id string)
-	OpenSettings()
-	Quit()
 }

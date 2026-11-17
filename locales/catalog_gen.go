@@ -34,18 +34,18 @@ type Messages struct{ locale string }
 // source language.
 func In(locale string) Messages { return Messages{locale} }
 
-// WelcomeTitle says "DevToys"
+// WelcomeTitle says "Welcome Page"
 // in the language the app shows.
 //
 // The product name, shown as the welcome page title.
 func WelcomeTitle() string { return In(i18n.Locale()).WelcomeTitle() }
 
-// WelcomeTitle says "DevToys"
+// WelcomeTitle says "Welcome Page"
 // in the language of msgs.
 //
 // The product name, shown as the welcome page title.
 func (msgs Messages) WelcomeTitle() string {
-	return Catalog.Format(msgs.locale, "welcomeTitle", nil)
+	return Catalog.Format(msgs.locale, "welcome_title", nil)
 }
 
 // WelcomeSubtitle says "A toolbox for developers."
@@ -59,7 +59,7 @@ func WelcomeSubtitle() string { return In(i18n.Locale()).WelcomeSubtitle() }
 //
 // One-line description under the welcome page title.
 func (msgs Messages) WelcomeSubtitle() string {
-	return Catalog.Format(msgs.locale, "welcomeSubtitle", nil)
+	return Catalog.Format(msgs.locale, "welcome_subtitle", nil)
 }
 
 // WelcomeHintSidebar says "Pick a tool from the left."
@@ -73,23 +73,23 @@ func WelcomeHintSidebar() string { return In(i18n.Locale()).WelcomeHintSidebar()
 //
 // Welcome page card telling the user to choose a tool in the sidebar.
 func (msgs Messages) WelcomeHintSidebar() string {
-	return Catalog.Format(msgs.locale, "welcomeHintSidebar", nil)
+	return Catalog.Format(msgs.locale, "welcome_hint_sidebar", nil)
 }
 
-// WelcomeHintTitlebar says "Switch the theme and language from the title bar."
+// WelcomeHintTitlebar says "Open settings from the title bar to switch the theme and language."
 // in the language the app shows.
 //
 // Welcome page card telling the user where the theme and language controls
 // are.
 func WelcomeHintTitlebar() string { return In(i18n.Locale()).WelcomeHintTitlebar() }
 
-// WelcomeHintTitlebar says "Switch the theme and language from the title bar."
+// WelcomeHintTitlebar says "Open settings from the title bar to switch the theme and language."
 // in the language of msgs.
 //
 // Welcome page card telling the user where the theme and language controls
 // are.
 func (msgs Messages) WelcomeHintTitlebar() string {
-	return Catalog.Format(msgs.locale, "welcomeHintTitlebar", nil)
+	return Catalog.Format(msgs.locale, "welcome_hint_titlebar", nil)
 }
 
 // Tools says "Tools"
@@ -106,34 +106,6 @@ func (msgs Messages) Tools() string {
 	return Catalog.Format(msgs.locale, "tools", nil)
 }
 
-// Theme says "Theme"
-// in the language the app shows.
-//
-// Title and accessibility label of the title bar's theme control.
-func Theme() string { return In(i18n.Locale()).Theme() }
-
-// Theme says "Theme"
-// in the language of msgs.
-//
-// Title and accessibility label of the title bar's theme control.
-func (msgs Messages) Theme() string {
-	return Catalog.Format(msgs.locale, "theme", nil)
-}
-
-// Language says "Language"
-// in the language the app shows.
-//
-// Title and accessibility label of the title bar's language control.
-func Language() string { return In(i18n.Locale()).Language() }
-
-// Language says "Language"
-// in the language of msgs.
-//
-// Title and accessibility label of the title bar's language control.
-func (msgs Messages) Language() string {
-	return Catalog.Format(msgs.locale, "language", nil)
-}
-
 // SettingsTitle says "Settings"
 // in the language the app shows.
 //
@@ -145,7 +117,141 @@ func SettingsTitle() string { return In(i18n.Locale()).SettingsTitle() }
 //
 // Title of the settings dialog and of the title bar button that opens it.
 func (msgs Messages) SettingsTitle() string {
-	return Catalog.Format(msgs.locale, "settingsTitle", nil)
+	return Catalog.Format(msgs.locale, "settings_title", nil)
+}
+
+// SettingsGeneral says "General"
+// in the language the app shows.
+//
+// Settings tab with the appearance and language choices.
+func SettingsGeneral() string { return In(i18n.Locale()).SettingsGeneral() }
+
+// SettingsGeneral says "General"
+// in the language of msgs.
+//
+// Settings tab with the appearance and language choices.
+func (msgs Messages) SettingsGeneral() string {
+	return Catalog.Format(msgs.locale, "settings_general", nil)
+}
+
+// SettingsHotkeys says "Shortcuts"
+// in the language the app shows.
+//
+// Settings tab with the global and in-app hotkeys.
+func SettingsHotkeys() string { return In(i18n.Locale()).SettingsHotkeys() }
+
+// SettingsHotkeys says "Shortcuts"
+// in the language of msgs.
+//
+// Settings tab with the global and in-app hotkeys.
+func (msgs Messages) SettingsHotkeys() string {
+	return Catalog.Format(msgs.locale, "settings_hotkeys", nil)
+}
+
+// SettingsHotkeyUnset says "Not set"
+// in the language the app shows.
+//
+// Placeholder of the hotkey recorder when no hotkey is set.
+func SettingsHotkeyUnset() string { return In(i18n.Locale()).SettingsHotkeyUnset() }
+
+// SettingsHotkeyUnset says "Not set"
+// in the language of msgs.
+//
+// Placeholder of the hotkey recorder when no hotkey is set.
+func (msgs Messages) SettingsHotkeyUnset() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_unset", nil)
+}
+
+// SettingsHotkeyGlobal says "Global shortcuts"
+// in the language the app shows.
+//
+// Settings group for hotkeys that work while DevToys is in the background.
+func SettingsHotkeyGlobal() string { return In(i18n.Locale()).SettingsHotkeyGlobal() }
+
+// SettingsHotkeyGlobal says "Global shortcuts"
+// in the language of msgs.
+//
+// Settings group for hotkeys that work while DevToys is in the background.
+func (msgs Messages) SettingsHotkeyGlobal() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_global", nil)
+}
+
+// SettingsHotkeyGlobalWindowToggle says "Show or hide the window"
+// in the language the app shows.
+//
+// Settings row for the global hotkey that shows or hides the main window.
+func SettingsHotkeyGlobalWindowToggle() string {
+	return In(i18n.Locale()).SettingsHotkeyGlobalWindowToggle()
+}
+
+// SettingsHotkeyGlobalWindowToggle says "Show or hide the window"
+// in the language of msgs.
+//
+// Settings row for the global hotkey that shows or hides the main window.
+func (msgs Messages) SettingsHotkeyGlobalWindowToggle() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_global_window_toggle", nil)
+}
+
+// SettingsHotkeyGlobalWindowToggleHint says "Works while DevToys is in the background."
+// in the language the app shows.
+//
+// Explanation under the global hotkey's name.
+func SettingsHotkeyGlobalWindowToggleHint() string {
+	return In(i18n.Locale()).SettingsHotkeyGlobalWindowToggleHint()
+}
+
+// SettingsHotkeyGlobalWindowToggleHint says "Works while DevToys is in the background."
+// in the language of msgs.
+//
+// Explanation under the global hotkey's name.
+func (msgs Messages) SettingsHotkeyGlobalWindowToggleHint() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_global_window_toggle_hint", nil)
+}
+
+// SettingsHotkeyApp says "In-app shortcuts"
+// in the language the app shows.
+//
+// Settings group for hotkeys that work while the window is focused.
+func SettingsHotkeyApp() string { return In(i18n.Locale()).SettingsHotkeyApp() }
+
+// SettingsHotkeyApp says "In-app shortcuts"
+// in the language of msgs.
+//
+// Settings group for hotkeys that work while the window is focused.
+func (msgs Messages) SettingsHotkeyApp() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_app", nil)
+}
+
+// SettingsHotkeyAppSidebarToggle says "Collapse or expand the sidebar"
+// in the language the app shows.
+//
+// Settings row for the in-app hotkey that toggles the sidebar.
+func SettingsHotkeyAppSidebarToggle() string {
+	return In(i18n.Locale()).SettingsHotkeyAppSidebarToggle()
+}
+
+// SettingsHotkeyAppSidebarToggle says "Collapse or expand the sidebar"
+// in the language of msgs.
+//
+// Settings row for the in-app hotkey that toggles the sidebar.
+func (msgs Messages) SettingsHotkeyAppSidebarToggle() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_app_sidebar_toggle", nil)
+}
+
+// SettingsHotkeyAppSidebarToggleHint says "Works while the window is focused."
+// in the language the app shows.
+//
+// Explanation under the sidebar hotkey's name.
+func SettingsHotkeyAppSidebarToggleHint() string {
+	return In(i18n.Locale()).SettingsHotkeyAppSidebarToggleHint()
+}
+
+// SettingsHotkeyAppSidebarToggleHint says "Works while the window is focused."
+// in the language of msgs.
+//
+// Explanation under the sidebar hotkey's name.
+func (msgs Messages) SettingsHotkeyAppSidebarToggleHint() string {
+	return Catalog.Format(msgs.locale, "settings_hotkey_app_sidebar_toggle_hint", nil)
 }
 
 // SettingsTheme says "Appearance"
@@ -159,7 +265,7 @@ func SettingsTheme() string { return In(i18n.Locale()).SettingsTheme() }
 //
 // Heading of the theme choices in the settings dialog.
 func (msgs Messages) SettingsTheme() string {
-	return Catalog.Format(msgs.locale, "settingsTheme", nil)
+	return Catalog.Format(msgs.locale, "settings_theme", nil)
 }
 
 // ThemeSystem says "System"
@@ -173,7 +279,7 @@ func ThemeSystem() string { return In(i18n.Locale()).ThemeSystem() }
 //
 // Theme choice that follows the system's light or dark appearance.
 func (msgs Messages) ThemeSystem() string {
-	return Catalog.Format(msgs.locale, "themeSystem", nil)
+	return Catalog.Format(msgs.locale, "theme_system", nil)
 }
 
 // ThemeLight says "Light"
@@ -187,7 +293,7 @@ func ThemeLight() string { return In(i18n.Locale()).ThemeLight() }
 //
 // Theme choice that always uses the light appearance.
 func (msgs Messages) ThemeLight() string {
-	return Catalog.Format(msgs.locale, "themeLight", nil)
+	return Catalog.Format(msgs.locale, "theme_light", nil)
 }
 
 // ThemeDark says "Dark"
@@ -201,7 +307,7 @@ func ThemeDark() string { return In(i18n.Locale()).ThemeDark() }
 //
 // Theme choice that always uses the dark appearance.
 func (msgs Messages) ThemeDark() string {
-	return Catalog.Format(msgs.locale, "themeDark", nil)
+	return Catalog.Format(msgs.locale, "theme_dark", nil)
 }
 
 // SettingsLanguage says "Language"
@@ -215,7 +321,7 @@ func SettingsLanguage() string { return In(i18n.Locale()).SettingsLanguage() }
 //
 // Heading of the language choices in the settings dialog.
 func (msgs Messages) SettingsLanguage() string {
-	return Catalog.Format(msgs.locale, "settingsLanguage", nil)
+	return Catalog.Format(msgs.locale, "settings_language", nil)
 }
 
 // LanguageSystem says "System"
@@ -229,7 +335,7 @@ func LanguageSystem() string { return In(i18n.Locale()).LanguageSystem() }
 //
 // Language choice that follows the user's preferred languages.
 func (msgs Messages) LanguageSystem() string {
-	return Catalog.Format(msgs.locale, "languageSystem", nil)
+	return Catalog.Format(msgs.locale, "language_system", nil)
 }
 
 // LanguageEnglish says "English"
@@ -243,7 +349,7 @@ func LanguageEnglish() string { return In(i18n.Locale()).LanguageEnglish() }
 //
 // Language choice for English.
 func (msgs Messages) LanguageEnglish() string {
-	return Catalog.Format(msgs.locale, "languageEnglish", nil)
+	return Catalog.Format(msgs.locale, "language_english", nil)
 }
 
 // LanguageChinese says "简体中文"
@@ -257,7 +363,7 @@ func LanguageChinese() string { return In(i18n.Locale()).LanguageChinese() }
 //
 // Language choice for Simplified Chinese.
 func (msgs Messages) LanguageChinese() string {
-	return Catalog.Format(msgs.locale, "languageChinese", nil)
+	return Catalog.Format(msgs.locale, "language_chinese", nil)
 }
 
 // OpenSettings says "Open settings"
@@ -271,7 +377,7 @@ func OpenSettings() string { return In(i18n.Locale()).OpenSettings() }
 //
 // Tooltip of the title bar button that opens the settings dialog.
 func (msgs Messages) OpenSettings() string {
-	return Catalog.Format(msgs.locale, "openSettings", nil)
+	return Catalog.Format(msgs.locale, "open_settings", nil)
 }
 
 // Close says "Close"
@@ -286,46 +392,4 @@ func Close() string { return In(i18n.Locale()).Close() }
 // Button that closes the settings dialog.
 func (msgs Messages) Close() string {
 	return Catalog.Format(msgs.locale, "close", nil)
-}
-
-// LauncherEmpty says "The launcher is a skeleton for now."
-// in the language the app shows.
-//
-// Placeholder shown in the launcher while it has no results.
-func LauncherEmpty() string { return In(i18n.Locale()).LauncherEmpty() }
-
-// LauncherEmpty says "The launcher is a skeleton for now."
-// in the language of msgs.
-//
-// Placeholder shown in the launcher while it has no results.
-func (msgs Messages) LauncherEmpty() string {
-	return Catalog.Format(msgs.locale, "launcherEmpty", nil)
-}
-
-// LauncherOpenMain says "Open main window"
-// in the language the app shows.
-//
-// Launcher button that shows the main window.
-func LauncherOpenMain() string { return In(i18n.Locale()).LauncherOpenMain() }
-
-// LauncherOpenMain says "Open main window"
-// in the language of msgs.
-//
-// Launcher button that shows the main window.
-func (msgs Messages) LauncherOpenMain() string {
-	return Catalog.Format(msgs.locale, "launcherOpenMain", nil)
-}
-
-// LauncherQuit says "Quit"
-// in the language the app shows.
-//
-// Launcher button that quits the application.
-func LauncherQuit() string { return In(i18n.Locale()).LauncherQuit() }
-
-// LauncherQuit says "Quit"
-// in the language of msgs.
-//
-// Launcher button that quits the application.
-func (msgs Messages) LauncherQuit() string {
-	return Catalog.Format(msgs.locale, "launcherQuit", nil)
 }

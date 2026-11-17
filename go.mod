@@ -7,7 +7,8 @@ tool github.com/egoist/mygo/cmd/mygo
 require (
 	github.com/Cyenoch/mygoicons v0.3.0
 	github.com/Cyenoch/mygoui v0.3.1
-	github.com/egoist/mygo v0.9.1
+	github.com/egoist/mygo v0.9.2
+	github.com/samber/lo v1.53.0
 )
 
 require (

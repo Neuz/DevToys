@@ -25,6 +25,9 @@ func New() *Module { return &Module{} }
 
 func (m *Module) ID() string { return "welcome" }
 
+// Group 把欢迎页放在通用工具分组里。
+func (m *Module) Group() string { return "" }
+
 func (m *Module) Title() string { return locales.WelcomeTitle() }
 
 // Icon 让折叠后的侧栏显示为图标轨道。
@@ -38,9 +41,6 @@ func (m *Module) Init(h contract.Host) {
 func (m *Module) View(c *ui.Context) {
 	theme.Apply(c)
 	version := mygo.App.Version()
-	if version == "" {
-		version = "dev"
-	}
 	ui.Column(c).Fill().Padding(theme.Space(8)).Gap(theme.Space(5)).Children(func() {
 		ui.Column(c).Gap(theme.Space(1)).Children(func() {
 			mygoui.Heading(c, 1, locales.WelcomeTitle())

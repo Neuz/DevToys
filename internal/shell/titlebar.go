@@ -1,132 +1,70 @@
 package shell
 
 import (
-	"github.com/Cyenoch/mygoicons/lucide"
 	"github.com/Cyenoch/mygoui"
-	"github.com/Cyenoch/mygoui/form"
-	"github.com/Cyenoch/mygoui/overlay"
+	"github.com/Cyenoch/mygoui/layout"
 	"github.com/Cyenoch/mygoui/theme"
-	"github.com/Neuz/DevToys/internal/config"
-	"github.com/Neuz/DevToys/internal/prefs"
-	"github.com/Neuz/DevToys/locales"
 	"github.com/egoist/mygo/ui"
 )
 
-// titleBarHeight 是自绘标题栏的高度，与窗口创建时的原生带一致。
+// titleBarHeight 是创建窗口时为原生标题栏预留的高度（DIP）。
 const titleBarHeight float32 = 44
 
-// titleBarTrailing 在标题栏右侧放置主题、语言与设置。
-func (s *Shell) titleBarTrailing(c *ui.Context) {
-	s.themeButton(c)
-	s.languageButton(c)
-	if s.settings != nil {
-		mygoui.Button(c, mygoui.ButtonOptions{
-			Label:    locales.SettingsTitle(),
-			Icon:     lucide.Settings(),
-			IconOnly: true,
-			Variant:  mygoui.ButtonGhost,
-			Size:     theme.ButtonSmall,
-			Tooltip:  locales.OpenSettings(),
-			OnClick:  s.openSettings,
-		})
-	}
+// titleBarOptions 配置标题栏。
+type titleBarOptions struct {
+	Icon     *ui.SVG
+	Title    string
+	Subtitle string
+	// Trailing 是标题右侧的插槽，用于放操作按钮；nil 时留空。
+	Trailing func(c *ui.Context)
 }
 
-// themeButton 是主题 Popover 的锚点与面板。
-func (s *Shell) themeButton(c *ui.Context) {
-	anchor := mygoui.Button(c, mygoui.ButtonOptions{
-		Label:    locales.Theme(),
-		Icon:     lucide.SunMoon(),
-		IconOnly: true,
-		Variant:  mygoui.ButtonGhost,
-		Size:     theme.ButtonSmall,
-		Tooltip:  locales.Theme(),
-		OnClick:  func() { s.themeOpen = !s.themeOpen },
-	})
-	overlay.Popover(c, anchor, &s.themeOpen, overlay.PopoverOptions{
-		Title:     locales.Theme(),
-		Placement: mygoui.Placement{Side: mygoui.SideBottom, Align: mygoui.AlignEnd},
-		Width:     220,
-		Body: func(pc *ui.Context) {
-			form.RadioGroup(pc, form.RadioGroupOptions{Orientation: form.GroupVertical}, func() {
-				for _, choice := range themeChoices() {
-					form.Radio(pc, form.RadioOptions[config.ThemeMode]{
-						State: &s.themeState,
-						Value: choice.mode,
-						Label: choice.label,
+// titleBar 用 mygoui 的标准标题栏绘制右侧内容区顶部：高度取 titleBarHeight
+// 与原生带的较大值，系统窗口控件的让位、空间不足时的堆叠都由 layout.TitleBar 处理。
+// 侧栏占起始侧，所以只让开结束侧的系统窗口按钮。
+func (s *Shell) titleBar(c *ui.Context, o titleBarOptions) {
+	var leading func()
+	if o.Icon != nil {
+		leading = func() {
+			size := theme.Scale(c, theme.IconLG)
+			ui.Icon(c, o.Icon).Size(size, size).Shrink(0).TextColor(theme.Colors(c).MutedForeground)
+		}
+	}
+	var trailing func()
+	if o.Trailing != nil {
+		trailing = func() { o.Trailing(c) }
+	}
+	layout.TitleBar(c, layout.TitleBarOptions{
+		Span:       layout.SpanEnd,
+		MinHeight:  titleBarHeight,
+		Borderless: true,
+		Leading:    leading,
+		Center: func() {
+			ui.Column(c).MinWidth(0).Children(func() {
+				mygoui.Typography(c, o.Title, mygoui.TypographyOptions{
+					Type:     theme.TypeBodySM,
+					Weight:   theme.WeightMedium,
+					Truncate: true,
+				})
+				if o.Subtitle != "" && fitsSubtitle(c) {
+					mygoui.Typography(c, o.Subtitle, mygoui.TypographyOptions{
+						Type:     theme.TypeBodyXS,
+						Muted:    true,
+						Truncate: true,
 					})
 				}
 			})
 		},
+		Trailing: trailing,
 	})
 }
 
-// languageButton 是语言 Popover 的锚点与面板。
-func (s *Shell) languageButton(c *ui.Context) {
-	anchor := mygoui.Button(c, mygoui.ButtonOptions{
-		Label:    locales.Language(),
-		Icon:     lucide.Languages(),
-		IconOnly: true,
-		Variant:  mygoui.ButtonGhost,
-		Size:     theme.ButtonSmall,
-		Tooltip:  locales.Language(),
-		OnClick:  func() { s.langOpen = !s.langOpen },
-	})
-	overlay.Popover(c, anchor, &s.langOpen, overlay.PopoverOptions{
-		Title:     locales.Language(),
-		Placement: mygoui.Placement{Side: mygoui.SideBottom, Align: mygoui.AlignEnd},
-		Width:     220,
-		Body: func(pc *ui.Context) {
-			form.RadioGroup(pc, form.RadioGroupOptions{Orientation: form.GroupVertical}, func() {
-				for _, choice := range languageChoices() {
-					form.Radio(pc, form.RadioOptions[string]{
-						State: &s.langState,
-						Value: choice.tag,
-						Label: choice.label,
-					})
-				}
-			})
-		},
-	})
-}
-
-// changeTheme 应用标题栏选择的外观并交给 app 保存。
-func (s *Shell) changeTheme(mode config.ThemeMode) {
-	s.themeMode = mode
-	prefs.ApplyTheme(mode)
-	if s.opts.OnThemeChange != nil {
-		s.opts.OnThemeChange(mode)
-	}
-}
-
-// changeLocale 应用标题栏选择的语言；空 tag 跟随系统。
-func (s *Shell) changeLocale(tag string) {
-	s.localeTag = tag
-	prefs.ApplyLocale(tag)
-}
-
-type themeChoice struct {
-	label string
-	mode  config.ThemeMode
-}
-
-func themeChoices() []themeChoice {
-	return []themeChoice{
-		{locales.ThemeSystem(), config.ThemeSystem},
-		{locales.ThemeLight(), config.ThemeLight},
-		{locales.ThemeDark(), config.ThemeDark},
-	}
-}
-
-type languageChoice struct {
-	label string
-	tag   string
-}
-
-func languageChoices() []languageChoice {
-	return []languageChoice{
-		{locales.LanguageSystem(), ""},
-		{locales.LanguageEnglish(), "en"},
-		{locales.LanguageChinese(), "zh-Hans"},
-	}
+// fitsSubtitle 报告标题栏是否高到能同时放下标题与副标题两行。
+// 高度按 layout.TitleBar 的规则估算：原生带（含 MinHeight）与按钮行高取大；
+// 两行文字的高度取自语义排版令牌，跟随文字缩放一起变大。
+func fitsSubtitle(c *ui.Context) bool {
+	height := max(titleBarHeight/c.Zoom(), c.TitleBar().Height)
+	height = max(height, theme.Scale(c, theme.HeightButtonSM)+2*theme.Scale(c, theme.Space(2)))
+	lines := theme.TypeBodySM.Style().LineHeight + theme.TypeBodyXS.Style().LineHeight
+	return height >= theme.Scale(c, lines)
 }
