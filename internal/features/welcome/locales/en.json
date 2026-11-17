@@ -3,5 +3,8 @@
   "title": "Welcome Page",
   "subtitle": "A toolbox for developers.",
   "hint_sidebar": "Pick a tool from the left.",
-  "hint_titlebar": "Open settings from the title bar to switch the theme and language."
+  "hint_titlebar": "Open settings from the title bar to switch the theme and language.",
+  "demo_run": "Run a slow task",
+  "demo_running": "Running in the background…",
+  "demo_done": "Done in %s"
 }

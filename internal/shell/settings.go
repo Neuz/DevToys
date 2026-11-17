@@ -1,6 +1,7 @@
 package shell
 
 import (
+	"github.com/Cyenoch/mygoicons/lucide"
 	"github.com/Cyenoch/mygoui"
 	"github.com/Cyenoch/mygoui/form"
 	"github.com/Cyenoch/mygoui/layout"
@@ -10,6 +11,7 @@ import (
 	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/locales"
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -49,6 +51,7 @@ func (s *Shell) openSettings() {
 		s.settingsWin = mygo.NewWindow(mygo.WindowOptions{
 			Title:           locales.SettingsTitle(),
 			Parent:          s.win,
+			Modal:           true,
 			Width:           settingsWidth,
 			Height:          settingsHeight,
 			DisableResize:   true,
@@ -91,8 +94,6 @@ func (s *Shell) View(c *ui.Context) {
 		Span:       layout.SpanWindow,
 		Borderless: false,
 		Center: func() {
-			// 标题栏的右边距还含窗口按钮的占位，左侧只有等宽的留白；
-			// 在内容前补上同样的空白，标题才落在整个窗口的正中。
 			bar := c.TitleBar()
 			ui.Row(c).FillWidth().Justify(ui.Center).Children(func() {
 				if inset := bar.Right - bar.Left; inset > 0 {
@@ -121,34 +122,57 @@ func (s *Shell) View(c *ui.Context) {
 // generalSection 是“通用”标签页：外观与语言。
 func (s *Shell) generalSection(c *ui.Context) {
 	st := s.settings
-	mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
-		Rows: []mygoui.SettingsRow{
-			{
-				Title: locales.SettingsTheme(),
-				Trailing: func() {
-					form.RadioGroup(c, form.RadioGroupOptions{Orientation: form.GroupHorizontal}, func() {
-						for _, choice := range themeChoices() {
-							form.Radio(c, form.RadioOptions[string]{
-								State: &st.theme,
-								Value: choice.value,
-								Label: choice.label,
-							})
-						}
-					})
+	ui.Column(c).Gap(theme.Space(4)).Children(func() {
+		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
+			Rows: []mygoui.SettingsRow{
+				{
+					Icon:  lucide.SunMoon(),
+					Title: locales.SettingsTheme(),
+					Trailing: func() {
+						form.RadioGroup(c, form.RadioGroupOptions{Orientation: form.GroupHorizontal}, func() {
+							for _, choice := range themeChoices() {
+								form.Radio(c, form.RadioOptions[string]{
+									State: &st.theme,
+									Value: choice.value,
+									Label: choice.label,
+								})
+							}
+						})
+					},
+				},
+				{
+					Icon:  lucide.Languages(),
+					Title: locales.SettingsLanguage(),
+					Trailing: func() {
+						form.Select(c, form.SelectOptions{
+							Items:    languageItems(),
+							State:    &st.locale,
+							OnChange: st.changeLocale,
+						})
+					},
+					Control: &st.locale.Trigger,
 				},
 			},
-			{
-				Title: locales.SettingsLanguage(),
-				Trailing: func() {
-					form.Select(c, form.SelectOptions{
-						Items:    languageItems(),
-						State:    &st.locale,
-						OnChange: st.changeLocale,
-					})
+		}).Grow(1)
+
+		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
+			Rows: []mygoui.SettingsRow{
+				{
+					Title:    mygo.App.Name(),
+					Subtitle: mygo.App.Version(),
+					Trailing: func() {
+						mygoui.Button(c, mygoui.ButtonOptions{
+							Label:   locales.SettingsCheckForUpdates(),
+							Icon:    lucide.Download(),
+							Variant: mygoui.ButtonOutline,
+							OnClick: func() {
+								updater.CheckForUpdates()
+							},
+						})
+					},
 				},
-				Control: &st.locale.Trigger,
 			},
-		},
+		})
 	})
 }
 
@@ -160,6 +184,7 @@ func (s *Shell) hotkeysSection(c *ui.Context) {
 			Title: locales.SettingsHotkeyGlobal(),
 			Rows: []mygoui.SettingsRow{
 				{
+					Icon:  lucide.AppWindow(),
 					Title: locales.SettingsHotkeyGlobalWindowToggle(),
 					Trailing: func() {
 						form.HotkeyInput(c, &st.globalHotkey, form.HotkeyInputOptions{
@@ -176,6 +201,7 @@ func (s *Shell) hotkeysSection(c *ui.Context) {
 			Title: locales.SettingsHotkeyApp(),
 			Rows: []mygoui.SettingsRow{
 				{
+					Icon:  lucide.PanelLeft(),
 					Title: locales.SettingsHotkeyAppSidebarToggle(),
 					Trailing: func() {
 						form.HotkeyInput(c, &st.sidebarHotkey, form.HotkeyInputOptions{

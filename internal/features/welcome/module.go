@@ -1,4 +1,7 @@
-// Package welcome 是应用启动后显示的功能页。
+// Package welcome 是应用启动后显示的功能页，也是功能模块的示例。
+//
+// 文件分工：module.go 是契约与状态，view.go 只负责渲染，actions.go 放界面
+// 触发的动作（起任务、写日志等）。
 package welcome
 
 import (
@@ -15,6 +18,9 @@ import (
 type Module struct {
 	tasks *task.Runner
 	log   *slog.Logger
+
+	// demo 是演示按钮的任务结果；nil 表示还没运行过。
+	demo *task.Result[string]
 }
 
 // New 返回欢迎页。

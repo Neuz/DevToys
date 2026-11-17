@@ -14,6 +14,8 @@ import (
 	"github.com/Neuz/DevToys/internal/task"
 	"github.com/Neuz/DevToys/locales"
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/updater"
+	"github.com/egoist/mygo/plugins/updater/native"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -81,6 +83,9 @@ func Run(opts Options) error {
 	applyTheme(opts.Config.Theme)
 
 	mygo.App.WhenReady(s.ready)
+	mygo.Use(native.New(updater.Options{
+		// Language: mygo.App.Locale(),
+	}))
 	mygo.App.OnSecondInstance(func([]string, string) { s.showMain(s.current) })
 	mygo.App.OnWindowAllClosed(func() {
 		if opts.Tray == nil {

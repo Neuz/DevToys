@@ -1,6 +1,8 @@
 package welcome
 
 import (
+	"fmt"
+
 	"github.com/Cyenoch/mygoui"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/features/welcome/locales"
@@ -27,6 +29,34 @@ func (m *Module) View(c *ui.Context) {
 			m.card(c, locales.T("hint_sidebar"))
 			m.card(c, locales.T("hint_titlebar"))
 		})
+		m.demoSection(c)
+	})
+}
+
+// demoSection 演示 task.Runner 与 slog：按钮在后台跑 2 秒，期间显示 loading。
+func (m *Module) demoSection(c *ui.Context) {
+	ui.Row(c).Gap(theme.Space(3)).AlignItems(ui.Center).Children(func() {
+		mygoui.Button(c, mygoui.ButtonOptions{
+			Label:   locales.T("demo_run"),
+			Loading: m.demo != nil && m.demo.Running(),
+			OnClick: m.runDemo,
+		})
+		if m.demo == nil {
+			return
+		}
+		if m.demo.Running() {
+			mygoui.Typography(c, locales.T("demo_running"), mygoui.TypographyOptions{
+				Type:  theme.TypeBodySM,
+				Muted: true,
+			})
+			return
+		}
+		if elapsed, ok := m.demo.Value(); ok {
+			mygoui.Typography(c, fmt.Sprintf(locales.T("demo_done"), elapsed), mygoui.TypographyOptions{
+				Type:  theme.TypeBodySM,
+				Muted: true,
+			})
+		}
 	})
 }
 
@@ -38,7 +68,7 @@ func (m *Module) card(c *ui.Context, text string) {
 				mygoui.Typography(c, text, mygoui.TypographyOptions{
 					Type:  theme.TypeBody,
 					Muted: true,
-				})
+				}).Padding(theme.Space(4))
 			}).Padding(theme.Space(4), 0)
 		})
 	})

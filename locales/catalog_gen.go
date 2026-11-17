@@ -261,3 +261,17 @@ func LanguageChinese() string { return In(i18n.Locale()).LanguageChinese() }
 func (msgs Messages) LanguageChinese() string {
 	return Catalog.Format(msgs.locale, "language_chinese", nil)
 }
+
+// SettingsCheckForUpdates says "检查更新..."
+// in the language the app shows.
+//
+// 设置窗口中检查更新选项的标题。
+func SettingsCheckForUpdates() string { return In(i18n.Locale()).SettingsCheckForUpdates() }
+
+// SettingsCheckForUpdates says "检查更新..."
+// in the language of msgs.
+//
+// 设置窗口中检查更新选项的标题。
+func (msgs Messages) SettingsCheckForUpdates() string {
+	return Catalog.Format(msgs.locale, "settings_checkForUpdates", nil)
+}
