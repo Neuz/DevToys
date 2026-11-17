@@ -1,0 +1,7 @@
+{
+  "@@locale": "en",
+  "title": "Welcome Page",
+  "subtitle": "A toolbox for developers.",
+  "hint_sidebar": "Pick a tool from the left.",
+  "hint_titlebar": "Open settings from the title bar to switch the theme and language."
+}

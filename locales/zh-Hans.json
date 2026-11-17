@@ -1,28 +1,67 @@
 {
   "@@locale": "zh-Hans",
-  "welcome_title": "欢迎页",
-  "welcome_subtitle": "面向开发者的工具箱。",
-  "welcome_hint_sidebar": "从左侧选择一个工具。",
-  "welcome_hint_titlebar": "在标题栏打开设置，可以切换主题与语言。",
-  "tools": "工具",
   "settings_title": "设置",
+  "@settings_title": {
+    "description": "设置窗口的标题，也是打开它的标题栏按钮的名称。"
+  },
   "settings_general": "通用",
+  "@settings_general": {
+    "description": "包含外观与语言选择的设置选项卡。"
+  },
   "settings_hotkeys": "快捷键",
+  "@settings_hotkeys": {
+    "description": "包含全局与应用内快捷键的设置选项卡。"
+  },
   "settings_hotkey_unset": "未设置",
+  "@settings_hotkey_unset": {
+    "description": "快捷键录制器未设置任何组合时的占位文字。"
+  },
   "settings_hotkey_global": "全局快捷键",
+  "@settings_hotkey_global": {
+    "description": "应用在后台时也生效的快捷键分组。"
+  },
   "settings_hotkey_global_window_toggle": "显示或隐藏窗口",
-  "settings_hotkey_global_window_toggle_hint": "应用在后台时也生效。",
+  "@settings_hotkey_global_window_toggle": {
+    "description": "全局快捷键中用于显示或隐藏主窗口的一行。"
+  },
   "settings_hotkey_app": "应用内快捷键",
+  "@settings_hotkey_app": {
+    "description": "窗口获得焦点时才生效的快捷键分组。"
+  },
   "settings_hotkey_app_sidebar_toggle": "折叠/展开侧边栏",
-  "settings_hotkey_app_sidebar_toggle_hint": "窗口获得焦点时生效。",
+  "@settings_hotkey_app_sidebar_toggle": {
+    "description": "应用内快捷键中用于折叠或展开侧边栏的一行。"
+  },
   "settings_theme": "外观",
+  "@settings_theme": {
+    "description": "设置窗口中外观选项的标题。"
+  },
   "theme_system": "跟随系统",
+  "@theme_system": {
+    "description": "跟随系统浅色或深色外观的主题选项。"
+  },
   "theme_light": "浅色",
+  "@theme_light": {
+    "description": "始终使用浅色外观的主题选项。"
+  },
   "theme_dark": "深色",
+  "@theme_dark": {
+    "description": "始终使用深色外观的主题选项。"
+  },
   "settings_language": "语言",
+  "@settings_language": {
+    "description": "设置窗口中语言选项的标题。"
+  },
   "language_system": "跟随系统",
+  "@language_system": {
+    "description": "跟随用户首选项的语言选项。"
+  },
   "language_english": "English",
+  "@language_english": {
+    "description": "英语的语言选项。"
+  },
   "language_chinese": "简体中文",
-  "open_settings": "打开设置",
-  "close": "关闭"
+  "@language_chinese": {
+    "description": "简体中文的语言选项。"
+  }
 }

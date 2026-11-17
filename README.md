@@ -46,12 +46,15 @@ DevToys/
 │   ├── contract/contract.go   Module / Live / Host
 │   ├── features/
 │   │   └── welcome/           欢迎页（示例模块，带侧栏图标）
+│   │       ├── module.go      模块声明：ID、分组、标题、图标、Init
+│   │       ├── view.go        页面内容
+│   │       └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
 │   ├── task/task.go           后台任务 runner，结果经 post 回到主线程
 │   ├── config/                config.json 的读写与规范化
 │   ├── logging/               slog 日志器（dev 文本 / prod JSON）
 │   ├── kit/trayicon.go        程序化生成托盘 PNG
 │   └── fsx/atomic.go          原子写文件（临时文件 + fsync + rename）
-├── locales/                   en.json、zh-Hans.json、catalog_gen.go（生成）
+├── locales/                   外壳与公共文案：en.json、zh-Hans.json、catalog_gen.go（生成）
 ├── mygo.json                  mygo 应用清单：入口、i18n 目录、更新源
 └── go.mod                     Go 1.27，mygo / mygoui / mygoicons
 ```
@@ -87,8 +90,8 @@ import (
 	"github.com/Cyenoch/mygoicons/lucide"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/contract"
+	"github.com/Neuz/DevToys/internal/features/ping/locales"
 	"github.com/Neuz/DevToys/internal/task"
-	"github.com/Neuz/DevToys/locales"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -100,8 +103,8 @@ type Module struct {
 func New() *Module { return &Module{} }
 
 func (m *Module) ID() string    { return "ping" }
-func (m *Module) Group() string { return locales.Tools() } // 侧栏分组名，同组条目按注册顺序排列
-func (m *Module) Title() string { return locales.PingTitle() }
+func (m *Module) Group() string { return "" } // 空分组，侧栏不显示分组标题
+func (m *Module) Title() string { return locales.T("title") }
 func (m *Module) Icon() *ui.SVG { return lucide.Activity() } // 返回 nil 时外壳用通用图标
 
 func (m *Module) Init(h contract.Host) {
@@ -117,7 +120,7 @@ func (m *Module) View(c *ui.Context) {
 
 2. 在 `app.Run` 的模块列表里加一行：`ping.New()`。
 
-3. 标题文案加到 `locales/en.json` / `zh-Hans.json`（如 `pingTitle`），再执行 `go tool mygo generate`。
+3. 在 `internal/features/ping/locales/` 下放 `en.json`、`zh-Hans.json`，并照着欢迎页的 `locales.go` 写 `//go:embed`、`i18n.NewCatalog`、`i18n.Register` 和 `T(key)`；目录已按模块隔离，key 不需要加模块前缀，直接用 `locales.T("title")` 读取。`go tool mygo generate` 只管理根 `locales/`，不处理各 feature 的目录。
 
 侧栏条目、标题栏标题和页面切换都由外壳自动完成，启动时进入模块列表的第一个页面。长时间运行的工作请走 `task.Go`，不要直接在 `View` 里阻塞；同一个 key 的新任务会取消并顶替旧任务。
 
@@ -152,7 +155,7 @@ func (m *Module) View(c *ui.Context) {
 
 **主题**：`shell` 的 `applyTheme` 把 `config.ThemeMode` 映射到 `mygo.Theme.SetSource`（启动时在 `App.Run` 之前调用一次），mygoui 组件在每帧用 `theme.Apply(c)` 读取当前外观。主题只在设置窗口里修改：设置页直接改 `shell.Options.Config` 并保存，随后由外壳重绘。
 
-**语言**：`locales/en.json` 是源语言，`locales/zh-Hans.json` 是翻译；在项目根目录执行 `go tool mygo generate` 生成 `catalog_gen.go`，key 变成 `locales.WelcomeTitle()` 这样的函数。运行时用 `mygo.App.SetLocale` 切换，`shell` 的 `applyLocale` 把配置里的 `system` 映射成 mygo 的空字符串（跟随系统）：外壳在首帧调用一次，之后设置窗口改动同样走这里，并由外壳统一重绘主窗口与设置窗口。
+**语言**：每个消息目录各自是一个 `i18n.Catalog` 并调用 `i18n.Register`，注册的语言会合并。基准语言（source）是 `zh-Hans`，`en` 作为翻译：当前语言缺词时回退到基准语言。根 `locales/` 放外壳与公共文案，由 `go tool mygo generate` 维护（改完 `zh-Hans.json` / `en.json` 执行一次，生成 `catalog_gen.go`，key 变成 `locales.SettingsTitle()` 这样的函数；`@` 描述取自基准语言 `zh-Hans.json`）；`internal/features/<name>/locales/` 归各模块自己，JSON 与 `T(key)` 入口手写，`mygo generate` 不会覆盖或校验。`T` 用 `Catalog.Format(i18n.Locale(), key, nil)` 取词，无参数消息由 i18n 缓存。运行时用 `mygo.App.SetLocale` 切换，`shell` 的 `applyLocale` 把配置里的 `system` 映射成 mygo 的空字符串（跟随系统）：外壳在首帧调用一次，之后设置窗口改动同样走这里，并由外壳统一重绘主窗口与设置窗口。
 
 **全局快捷键**：`shell` 用 `mygo.GlobalShortcut.Register` 绑定 `config.hotkey.global.window_toggle`，按 `form.HotkeyInput` 录制的组合重新注册；被占用时记一条 `warn` 并保持未注册。触发后显示并聚焦主窗口，或把主窗口收起（有托盘时等同隐藏）。
 
@@ -189,5 +192,5 @@ go test ./...
 - 业务错误一律显式返回并带上下文（`fmt.Errorf("...: %w", err)`），不在业务逻辑里 panic。
 - UI 状态只在主线程读写；后台 goroutine 只通过 `task.Runner` 交付结果，`Close` 负责取消并等待。
 - 功能包只依赖 `contract` 与基础设施包，反过来 `shell` 不认识任何具体功能。
-- 新增文案先加到 `locales/en.json`（带 `description`），再补 `zh-Hans.json`，最后重新生成。
+- 新增文案先加到 `locales/zh-Hans.json`（基准语言，带 `@` 描述），再补 `locales/en.json`，最后重新生成。
 - 本期未做：命令行模式（`cmd` 里预留位置）、工具搜索、日志轮转、配置迁移。

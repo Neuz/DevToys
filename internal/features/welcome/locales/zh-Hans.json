@@ -1,0 +1,7 @@
+{
+  "@@locale": "zh-Hans",
+  "title": "欢迎页",
+  "subtitle": "面向开发者的工具箱。",
+  "hint_sidebar": "从左侧选择一个工具。",
+  "hint_titlebar": "在标题栏打开设置，可以切换主题与语言。"
+}

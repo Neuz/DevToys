@@ -6,7 +6,7 @@
   "out": "build",
   "i18n": {
     "dir": "locales",
-    "source": "en"
+    "source": "zh-Hans"
   },
   "updates": {
     "publicKey": "+57OtYSlUXou1OOcim+wh8N4eHw4fXFyw2d4JF6088w=",

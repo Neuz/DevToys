@@ -160,8 +160,7 @@ func (s *Shell) hotkeysSection(c *ui.Context) {
 			Title: locales.SettingsHotkeyGlobal(),
 			Rows: []mygoui.SettingsRow{
 				{
-					Title:    locales.SettingsHotkeyGlobalWindowToggle(),
-					Subtitle: locales.SettingsHotkeyGlobalWindowToggleHint(),
+					Title: locales.SettingsHotkeyGlobalWindowToggle(),
 					Trailing: func() {
 						form.HotkeyInput(c, &st.globalHotkey, form.HotkeyInputOptions{
 							AriaLabel:   locales.SettingsHotkeyGlobalWindowToggle(),
@@ -177,8 +176,7 @@ func (s *Shell) hotkeysSection(c *ui.Context) {
 			Title: locales.SettingsHotkeyApp(),
 			Rows: []mygoui.SettingsRow{
 				{
-					Title:    locales.SettingsHotkeyAppSidebarToggle(),
-					Subtitle: locales.SettingsHotkeyAppSidebarToggleHint(),
+					Title: locales.SettingsHotkeyAppSidebarToggle(),
 					Trailing: func() {
 						form.HotkeyInput(c, &st.sidebarHotkey, form.HotkeyInputOptions{
 							AriaLabel:   locales.SettingsHotkeyAppSidebarToggle(),

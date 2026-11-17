@@ -1,103 +1,19 @@
 {
   "@@locale": "en",
-  "welcome_title": "Welcome Page",
-  "@welcome_title": {
-    "description": "The product name, shown as the welcome page title."
-  },
-  "welcome_subtitle": "A toolbox for developers.",
-  "@welcome_subtitle": {
-    "description": "One-line description under the welcome page title."
-  },
-  "welcome_hint_sidebar": "Pick a tool from the left.",
-  "@welcome_hint_sidebar": {
-    "description": "Welcome page card telling the user to choose a tool in the sidebar."
-  },
-  "welcome_hint_titlebar": "Open settings from the title bar to switch the theme and language.",
-  "@welcome_hint_titlebar": {
-    "description": "Welcome page card telling the user where the theme and language controls are."
-  },
-  "tools": "Tools",
-  "@tools": {
-    "description": "Name of the sidebar navigation group in the main window."
-  },
   "settings_title": "Settings",
-  "@settings_title": {
-    "description": "Title of the settings dialog and of the title bar button that opens it."
-  },
   "settings_general": "General",
-  "@settings_general": {
-    "description": "Settings tab with the appearance and language choices."
-  },
-  "settings_hotkeys": "Shortcuts",
-  "@settings_hotkeys": {
-    "description": "Settings tab with the global and in-app hotkeys."
-  },
+  "settings_hotkeys": "Hotkeys",
   "settings_hotkey_unset": "Not set",
-  "@settings_hotkey_unset": {
-    "description": "Placeholder of the hotkey recorder when no hotkey is set."
-  },
   "settings_hotkey_global": "Global shortcuts",
-  "@settings_hotkey_global": {
-    "description": "Settings group for hotkeys that work while DevToys is in the background."
-  },
   "settings_hotkey_global_window_toggle": "Show or hide the window",
-  "@settings_hotkey_global_window_toggle": {
-    "description": "Settings row for the global hotkey that shows or hides the main window."
-  },
-  "settings_hotkey_global_window_toggle_hint": "Works while DevToys is in the background.",
-  "@settings_hotkey_global_window_toggle_hint": {
-    "description": "Explanation under the global hotkey's name."
-  },
-  "settings_hotkey_app": "In-app shortcuts",
-  "@settings_hotkey_app": {
-    "description": "Settings group for hotkeys that work while the window is focused."
-  },
+  "settings_hotkey_app": "In-app hotkeys",
   "settings_hotkey_app_sidebar_toggle": "Collapse or expand the sidebar",
-  "@settings_hotkey_app_sidebar_toggle": {
-    "description": "Settings row for the in-app hotkey that toggles the sidebar."
-  },
-  "settings_hotkey_app_sidebar_toggle_hint": "Works while the window is focused.",
-  "@settings_hotkey_app_sidebar_toggle_hint": {
-    "description": "Explanation under the sidebar hotkey's name."
-  },
   "settings_theme": "Appearance",
-  "@settings_theme": {
-    "description": "Heading of the theme choices in the settings dialog."
-  },
   "theme_system": "System",
-  "@theme_system": {
-    "description": "Theme choice that follows the system's light or dark appearance."
-  },
   "theme_light": "Light",
-  "@theme_light": {
-    "description": "Theme choice that always uses the light appearance."
-  },
   "theme_dark": "Dark",
-  "@theme_dark": {
-    "description": "Theme choice that always uses the dark appearance."
-  },
   "settings_language": "Language",
-  "@settings_language": {
-    "description": "Heading of the language choices in the settings dialog."
-  },
   "language_system": "System",
-  "@language_system": {
-    "description": "Language choice that follows the user's preferred languages."
-  },
   "language_english": "English",
-  "@language_english": {
-    "description": "Language choice for English."
-  },
-  "language_chinese": "简体中文",
-  "@language_chinese": {
-    "description": "Language choice for Simplified Chinese."
-  },
-  "open_settings": "Open settings",
-  "@open_settings": {
-    "description": "Tooltip of the title bar button that opens the settings dialog."
-  },
-  "close": "Close",
-  "@close": {
-    "description": "Button that closes the settings dialog."
-  }
+  "language_chinese": "简体中文"
 }
