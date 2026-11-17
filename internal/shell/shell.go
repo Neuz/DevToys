@@ -84,9 +84,8 @@ func Run(opts Options) error {
 	applyTheme(opts.Config.Theme)
 
 	mygo.App.WhenReady(s.ready)
-	mygo.Use(native.New(updater.Options{
-		// Language: mygo.App.Locale(),
-	}))
+	// Language 留空：跟随 mygo.App.Locale()，设置页切换语言后更新窗口同步。
+	mygo.Use(native.New(updater.Options{}))
 	mygo.App.OnSecondInstance(func([]string, string) { s.showMain(s.current) })
 	mygo.App.OnWindowAllClosed(func() {
 		if opts.Tray == nil {

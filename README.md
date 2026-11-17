@@ -42,7 +42,7 @@ DevToys/
 │   │   ├── titlebar.go        自绘标题栏：图标 + 标题 + 副标题，右侧插槽
 │   │   ├── settings.go        设置窗口：独立弹出窗口，通用（外观 + 语言）与快捷键两个选项卡
 │   │   ├── hotkey.go          快捷键：accelerator 转换、全局注册、应用内响应与显示/隐藏主窗口
-│   │   └── tray.go            托盘图标，点击回到主窗口
+│   │   └── tray.go            托盘图标：右键菜单（显示/隐藏、检查更新、退出）
 │   ├── contract/contract.go   Module / Live / Host
 │   ├── features/
 │   │   └── welcome/           欢迎页（示例模块，带侧栏图标）
@@ -52,7 +52,7 @@ DevToys/
 │   │       └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
 │   ├── task/task.go           后台任务 runner，结果经 post 回到主线程
 │   ├── config/                config.json 的读写与规范化
-│   ├── logging/               slog 日志器（dev 文本 / prod JSON）
+│   ├── logging/               slog 日志器（文本输出，dev 或 debug 时同时写 stderr）
 │   └── fsx/atomic.go          原子写文件（临时文件 + fsync + rename）
 ├── locales/                   外壳与公共文案：en.json、zh-Hans.json、catalog_gen.go（生成）
 ├── mygo.json                  mygo 应用清单：入口、i18n 目录、更新源
@@ -62,7 +62,7 @@ DevToys/
 ## 启动流程
 
 1. `cmd/devtoys` 取单实例锁，调用 `app.Run()`。
-2. `app` 从 `os.UserConfigDir()/DevToys` 读 `config.json`，失败则返回错误（文件缺失时用默认值）。
+2. `app` 从 `os.UserConfigDir()/DevToys` 读 `config.json`：文件缺失时用默认值；JSON 损坏时把原文件备份为 `config.json.bad` 并回退默认值，保证应用仍能启动。
 3. 初始化 `slog` 日志器。
 4. 组装模块列表与 `shell.Options`（模块、窗口尺寸、`*config.Config`、托盘）。
 5. `shell.Run(opts)` 先按配置应用主题（保证首帧正确），再注册回调（`WhenReady`、第二实例、全部窗口关闭、退出前清理），然后 `mygo.App.Run()` 进入事件循环。
@@ -131,7 +131,7 @@ func (m *Module) View(c *ui.Context) {
   - 右侧是 `ui.Column`：上面是标题栏（模块图标 + 标题 + 分组副标题，右侧插槽留给操作按钮），下面是 `Grow(1)` 的内容区；内容区用 `mygoui.ScrollArea` 承载当前模块的 `View`，超出高度时整体滚动，滚动位置由外壳跨帧保存；
   - 分组名来自模块的 `Group()`，同组条目按注册顺序排列，分组顺序取首次出现的位置。
 - 没有原生标题栏（`TitleBarStyle: TitleBarHidden`）：页面铺满整个窗口，系统窗口按钮悬浮在页面之上。右侧标题栏按 `c.TitleBar()` 报告的结束侧 insets 留出控件空间，整条可拖动窗口；高度取「44 DIP、原生按钮带、按钮行高」三者最大值，文字缩放变大时按钮也不会被裁切。侧栏本身也标记为拖动区域，所以侧栏顶部的空白处同样可以移动窗口。
-- 侧栏展开宽度 220、折叠后 48，两个值都是 `sidebar.go` 里的常量，不可拖动调整，也不写入配置。宽度由 `mygoui.Sidebar` 自己持有并做折叠动画，右侧内容区作为 flex 兄弟节点跟着一起动，不会留下空白。
+- 侧栏展开宽度 180、折叠后 48，两个值都是 `sidebar.go` 里的常量，不可拖动调整，也不写入配置。宽度由 `mygoui.Sidebar` 自己持有并做折叠动画，右侧内容区作为 flex 兄弟节点跟着一起动，不会留下空白。
 - 侧栏底部插槽（`mygoui.SidebarOptions.Footer`）放常驻的设置入口；侧栏展开时是整行按钮，折叠后收成齿轮图标。
 - 设置按钮打开**独立的设置窗口**（`shell/settings.go`）：它是主窗口的子窗口，随主窗口显示/隐藏，但不遮挡、不阻塞主窗口；顶部是「通用 / 快捷键」两个选项卡。通用页用 `mygoui.SettingsGroup` 放外观（横向单选组）与语言（下拉选择）；快捷键页分「全局快捷键」与「应用内快捷键」两组，用 `form.HotkeyInput` 分别录制显示/隐藏窗口与折叠/展开侧边栏的组合。改动即时应用并写回 `config.json`。
 - 标题栏右侧的插槽（`titleBarOptions.Trailing`）提供给调用方放操作按钮，目前留空。
@@ -143,7 +143,7 @@ func (m *Module) View(c *ui.Context) {
 
 | 字段 | 说明 |
 | --- | --- |
-| `logLevel` | `debug` / `info` / `warn` / `error`，默认 `info` |
+| `log_level` | `debug` / `info` / `warn` / `error`，默认 `info` |
 | `theme` | `system` / `light` / `dark`，默认跟随系统 |
 | `locale` | `system` / `en` / `zh-Hans`，默认跟随系统 |
 | `hotkey.global.window_toggle` | 全局显示/隐藏窗口的 accelerator（如 `Ctrl+Shift+Space`），默认空，不注册 |
@@ -151,7 +151,7 @@ func (m *Module) View(c *ui.Context) {
 
 写入走 `fsx.WriteFile`（临时文件 + fsync + rename），损坏或缺失时回退默认值；未知的 `theme`/`locale` 在读取时归一化为跟随系统。旧的扁平键 `hotkey_global` / `hotkey_sidebar` 已废弃，不再读取，升级后需在设置窗口重新录制。
 
-**日志**：`os.UserConfigDir()/DevToys/devtoys.log`。级别取 `config.logLevel`；`debug` 时输出可读文本并同时写 stderr，其余级别输出 JSON。本期不做轮转。
+**日志**：`os.UserConfigDir()/DevToys/devtoys.log`。级别取 `config.log_level`，统一用 `slog.TextHandler` 输出文本；开发模式（`go tool mygo dev`）或 `debug` 级别时同时写 stderr。日志目录不可写时降级为只写 stderr，不会阻止应用启动。本期不做轮转。
 
 **主题**：`shell` 的 `applyTheme` 把 `config.ThemeMode` 映射到 `mygo.Theme.SetSource`（启动时在 `App.Run` 之前调用一次），mygoui 组件在每帧用 `theme.Apply(c)` 读取当前外观。主题只在设置窗口里修改：设置页直接改 `shell.Options.Config` 并保存，随后由外壳重绘。
 
@@ -164,7 +164,7 @@ func (m *Module) View(c *ui.Context) {
 ## 托盘
 
 - 托盘图标复用 `resources.AppIconPNG()` 的 `icon.png`，与窗口图标一致。
-- `shell` 用 `mygo.NewTray` 创建托盘图标，点击或右键都显示主窗口并获取焦点；本期没有 Flyout 面板，需要启动器时再加。
+- `shell` 用 `mygo.NewTray` 创建托盘图标，只有右键菜单：显示/隐藏主窗口（右侧显示已设置的全局快捷键）、检查更新、退出；单击与双击不做任何事。本期没有 Flyout 面板，需要启动器时再加。
 - 有托盘时关闭主窗口只是隐藏（macOS 上同时把激活策略切成 Accessory），只有 `Quit` 才真正退出并销毁托盘。
 
 ## 构建与验证
@@ -180,9 +180,10 @@ go tool mygo build
 go tool mygo generate
 
 # 格式、静态检查、测试
-gofmt -l cmd internal locales
+gofmt -l cmd internal locales resources
 go vet ./...
 go test ./...
+go tool mygo i18n check .
 ```
 
 `internal/shell` 目前没有测试文件；需要回归时可以用 `ui.NewTester` 直接渲染外壳，不依赖真实窗口。

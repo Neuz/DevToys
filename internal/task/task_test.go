@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -98,5 +99,23 @@ func TestGoReturnsError(t *testing.T) {
 	}
 	if _, ok := res.Value(); ok {
 		t.Fatal("failed task reported a value")
+	}
+}
+
+func TestGoRecoversPanic(t *testing.T) {
+	r, posts := newTestRunner()
+	defer r.Close()
+
+	res := Go(r, "k", func(context.Context) (int, error) { panic("boom") })
+	runPost(t, posts)
+
+	if res.Running() {
+		t.Fatal("Running() = true after a panic")
+	}
+	if err := res.Err(); err == nil || !strings.Contains(err.Error(), "panic") {
+		t.Fatalf("Err() = %v, want a panic error", err)
+	}
+	if _, ok := res.Value(); ok {
+		t.Fatal("panicked task reported a value")
 	}
 }

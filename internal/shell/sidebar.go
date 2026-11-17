@@ -12,8 +12,8 @@ import (
 
 // 侧栏宽度：展开时的宽度与折叠后的图标轨道宽度。
 const (
-	siderbarWidth          float32 = 180
-	siderbarCollapsedWidth float32 = 48
+	sidebarWidth          float32 = 180
+	sidebarCollapsedWidth float32 = 48
 )
 
 // sidebar 绘制模块导航：按模块声明的分组聚合，分组顺序取注册顺序中首次出现的位置。
@@ -31,8 +31,8 @@ func (s *Shell) sidebar(c *ui.Context) {
 	mygoui.Sidebar(c, mygoui.SidebarOptions{
 		Selected:       &s.current,
 		Collapsed:      &s.collapsed,
-		Width:          siderbarWidth,
-		CollapsedWidth: siderbarCollapsedWidth,
+		Width:          sidebarWidth,
+		CollapsedWidth: sidebarCollapsedWidth,
 		Groups:         groups,
 		Footer:         func() { s.settingsButton(c) },
 		OnSelect:       s.activate,

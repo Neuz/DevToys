@@ -16,23 +16,35 @@ import (
 const filename = "devtoys.log"
 
 // New 创建应用日志器：始终追加写日志文件，开发模式或 debug 级别时同时写
-// stderr。第二个返回值用于关闭日志文件。
-func New(cfg config.Config) (*slog.Logger, func() error, error) {
+// stderr。无法写日志文件时降级为只写 stderr，保证应用仍能启动；第二个
+// 返回值用于关闭日志文件。
+func New(cfg config.Config) (*slog.Logger, func() error) {
+	lv := parseLevel(string(cfg.LogLevel))
+	opts := &slog.HandlerOptions{Level: lv}
+
+	f, err := openLogFile()
+	if err != nil {
+		logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
+		logger.Warn("logging: 无法写日志文件，改为只输出到 stderr", "error", err)
+		return logger, func() error { return nil }
+	}
+	return slog.New(slog.NewTextHandler(output(f, lv), opts)), f.Close
+}
+
+// openLogFile 打开（必要时创建）日志文件。
+func openLogFile() (*os.File, error) {
 	dir, err := logDir()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, nil, fmt.Errorf("创建日志目录 %q: %w", dir, err)
+		return nil, fmt.Errorf("创建日志目录 %q: %w", dir, err)
 	}
 	f, err := os.OpenFile(filepath.Join(dir, filename), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		return nil, nil, fmt.Errorf("打开日志文件: %w", err)
+		return nil, fmt.Errorf("打开日志文件: %w", err)
 	}
-
-	lv := parseLevel(string(cfg.LogLevel))
-	opts := &slog.HandlerOptions{Level: lv}
-	return slog.New(slog.NewTextHandler(output(f, lv), opts)), f.Close, nil
+	return f, nil
 }
 
 // logDir 返回日志目录：用户配置目录下的应用名目录。

@@ -3,7 +3,9 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -39,9 +41,11 @@ func (c Config) Save() error {
 }
 
 // LoadFrom 读取 dir 下的 config.json。文件不存在时返回 Default() 且 err 为 nil；
-// JSON 损坏时返回 Default() 和错误。
+// JSON 损坏时把原文件改名为 config.json.bad 备份，记一条 warn，然后返回
+// Default() 和 nil，避免一份坏配置让应用再也起不来。
 func LoadFrom(dir string) (Config, error) {
-	data, err := os.ReadFile(filepath.Join(dir, fileName))
+	path := filepath.Join(dir, fileName)
+	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
 		return Default(), nil
 	}
@@ -50,7 +54,12 @@ func LoadFrom(dir string) (Config, error) {
 	}
 	cfg := Default()
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return Default(), err
+		backup := path + ".bad"
+		if rerr := os.Rename(path, backup); rerr != nil {
+			return Default(), fmt.Errorf("配置损坏且无法备份: %w", errors.Join(err, rerr))
+		}
+		slog.Warn("config: 配置损坏，已回退默认值", "path", path, "backup", backup, "error", err)
+		return Default(), nil
 	}
 	return cfg.Normalize(), nil
 }

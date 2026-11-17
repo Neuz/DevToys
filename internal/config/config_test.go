@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -45,15 +47,27 @@ func TestLoadMissing(t *testing.T) {
 
 func TestLoadCorrupt(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, fileName), []byte("{nope"), 0o644); err != nil {
+	path := filepath.Join(dir, fileName)
+	const broken = "{nope"
+	if err := os.WriteFile(path, []byte(broken), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got, err := LoadFrom(dir)
-	if err == nil {
-		t.Fatal("Load succeeded, want an error")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
 	}
 	if got != Default() {
 		t.Fatalf("Load = %+v, want Default()", got)
+	}
+	if _, err := os.Stat(path); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("损坏的 config.json 未被移走: %v", err)
+	}
+	backup, err := os.ReadFile(path + ".bad")
+	if err != nil {
+		t.Fatalf("读取备份: %v", err)
+	}
+	if string(backup) != broken {
+		t.Fatalf("备份内容 = %q, want %q", backup, broken)
 	}
 }
 

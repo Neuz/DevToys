@@ -4,21 +4,39 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  draft-release:
+  checks:
     runs-on: ubuntu-latest
     steps:
-      - name: Update version in mygo.json
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "Setting version to $VERSION in mygo.json"
-          jq --arg v "$VERSION" '.version = $v' mygo.json > tmp.json && mv tmp.json mygo.json
-          echo "mygo.json 当前版本: $(jq -r '.version' mygo.json)"
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+          cache: false
+      - name: Check formatting
+        run: test -z "$(gofmt -l cmd internal locales resources)"
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: Check i18n
+        run: go tool mygo i18n check .
+  draft-release:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Generate Changelog
         id: changelog
         uses: ardalanamini/auto-changelog@v4
@@ -27,14 +45,17 @@ jobs:
       - name: Create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          # 走 env 而不是直接插值，避免 commit message 里的引号/反引号破坏命令。
+          NOTES: ${{ steps.changelog.outputs.changelog }}
         run: |
-          if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
-            gh release create "$GITHUB_REF_NAME" \
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --draft \
             --verify-tag \
-            --title "$GITHUB_REF_NAME" \
-            --notes "${{ steps.changelog.outputs.changelog }}"
+            --title "$TAG" \
+            --notes "$NOTES"
           fi
   build:
     needs: draft-release

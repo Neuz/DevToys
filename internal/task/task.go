@@ -8,6 +8,8 @@ package task
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 	"sync"
 )
 
@@ -68,10 +70,21 @@ func Go[T any](r *Runner, key string, fn func(context.Context) (T, error)) *Resu
 
 	go func() {
 		defer r.wg.Done()
-		v, err := fn(ctx)
+		v, err := call(ctx, fn)
 		r.post(func() { s.finish(v, err) })
 	}()
 	return s
+}
+
+// call 执行 fn，并把 panic 转成错误：fn 由功能模块提供，一个 bug 不应该带走
+// 整个应用，也不应该让 Result 永远停在 running。
+func call[T any](ctx context.Context, fn func(context.Context) (T, error)) (v T, err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			err = fmt.Errorf("task: panic: %v\n%s", p, debug.Stack())
+		}
+	}()
+	return fn(ctx)
 }
 
 // Result 是一个后台任务的结果。

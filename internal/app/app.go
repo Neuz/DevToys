@@ -28,10 +28,7 @@ func Run() error {
 		return err
 	}
 	// 日志
-	logger, closeLog, err := logging.New(cfg)
-	if err != nil {
-		return err
-	}
+	logger, closeLog := logging.New(cfg)
 	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) { _ = closeLog() })
 	slog.SetDefault(logger)
 

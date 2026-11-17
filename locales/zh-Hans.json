@@ -64,8 +64,8 @@
   "@language_chinese": {
     "description": "简体中文的语言选项。"
   },
-  "settings_checkForUpdates": "检查更新...",
-  "@settings_checkForUpdates": {
+  "settings_check_for_updates": "检查更新...",
+  "@settings_check_for_updates": {
     "description": "设置窗口中检查更新选项的标题。"
   },
   "tray_show_hide": "显示/隐藏主窗体",

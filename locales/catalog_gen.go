@@ -273,7 +273,7 @@ func SettingsCheckForUpdates() string { return In(i18n.Locale()).SettingsCheckFo
 //
 // 设置窗口中检查更新选项的标题。
 func (msgs Messages) SettingsCheckForUpdates() string {
-	return Catalog.Format(msgs.locale, "settings_checkForUpdates", nil)
+	return Catalog.Format(msgs.locale, "settings_check_for_updates", nil)
 }
 
 // TrayShowHide says "显示/隐藏主窗体"
