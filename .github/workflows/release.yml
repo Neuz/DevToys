@@ -63,5 +63,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
-        run: bun run build -- -platform "${{ matrix.platform }}" -upload
+        run: go tool mygo build -platform "${{ matrix.platform }}" -upload
 
