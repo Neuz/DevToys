@@ -15,15 +15,16 @@ const demoKey = "demo"
 func (m *Module) runDemo() {
 	start := time.Now()
 	m.log.Info("demo: task started", "key", demoKey)
-	m.demo = task.Go(m.tasks, demoKey, func(ctx context.Context) (string, error) {
-		select {
-		case <-time.After(2 * time.Second):
-		case <-ctx.Done():
-			m.log.Debug("demo: task cancelled", "key", demoKey)
-			return "", ctx.Err()
-		}
-		elapsed := time.Since(start).Round(100 * time.Millisecond)
-		m.log.Info("demo: task finished", "key", demoKey, "elapsed", elapsed)
-		return elapsed.String(), nil
-	})
+	m.demo = task.Go(m.tasks, demoKey,
+		func(ctx context.Context) (string, error) {
+			select {
+			case <-time.After(2 * time.Second):
+			case <-ctx.Done():
+				m.log.Debug("demo: task cancelled", "key", demoKey)
+				return "", ctx.Err()
+			}
+			elapsed := time.Since(start).Round(100 * time.Millisecond)
+			m.log.Info("demo: task finished", "key", demoKey, "elapsed", elapsed)
+			return elapsed.String(), nil
+		})
 }

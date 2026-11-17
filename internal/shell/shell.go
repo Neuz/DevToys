@@ -21,7 +21,8 @@ import (
 
 // Options 配置主窗口。
 type Options struct {
-	Name      string
+	Title     string
+	Subtitle  string
 	Modules   []contract.Module
 	DefaultID string
 
@@ -121,7 +122,7 @@ func newShell(opts Options) *Shell {
 func (s *Shell) ready() {
 	applyLocale(s.opts.Config.Locale)
 	s.win = mygo.NewWindow(mygo.WindowOptions{
-		Title:          s.opts.Name,
+		Title:          s.opts.Title,
 		Width:          s.opts.Width,
 		Height:         s.opts.Height,
 		MinWidth:       s.opts.MinWidth,
@@ -174,16 +175,24 @@ func (s *Shell) view(c *ui.Context) {
 	ui.Row(c).Fill().MinWidth(0).MinHeight(0).Background(t.Background).TextColor(t.Foreground).Children(func() {
 		s.sidebar(c)
 		ui.Column(c).FillHeight().Grow(1).Basis(0).MinWidth(0).MinHeight(0).Children(func() {
-			s.titleBar(c, titleBarOptions{
-				Title: s.opts.Name,
-			})
+			// 内容铺满整列，只在顶部留出标题栏的高度：初始内容不被遮住，
+			// 滚动后从标题栏下方穿过，由栏的玻璃材质模糊。
 			mygoui.ScrollArea(c, &s.scroll, mygoui.ScrollAreaOptions{
 				Axis: mygoui.ScrollVertical,
 			}, func() {
+				ui.Box(c).FillWidth().Height(barHeight(c)).Shrink(0)
 				if m != nil {
 					m.View(c)
 				}
 			}).FillWidth().Grow(1).Basis(0).MinWidth(0).MinHeight(0)
+
+			// 标题栏绝对定位在内容之上，不占布局高度。
+			ui.Column(c).Absolute().Top(0).Left(0).Right(0).Children(func() {
+				s.titleBar(c, titleBarOptions{
+					Title:    s.opts.Title,
+					Subtitle: s.opts.Subtitle,
+				})
+			})
 		})
 	})
 }

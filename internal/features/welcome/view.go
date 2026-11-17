@@ -6,24 +6,45 @@ import (
 	"github.com/Cyenoch/mygoui"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/features/welcome/locales"
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
 // View 绘制欢迎页：标题、版本、说明与两张提示卡片。
 func (m *Module) View(c *ui.Context) {
 	theme.Apply(c)
-	version := mygo.App.Version()
 	ui.Column(c).Fill().Padding(theme.Space(8)).Gap(theme.Space(5)).Children(func() {
 		ui.Column(c).Gap(theme.Space(1)).Children(func() {
 			mygoui.Heading(c, 1, locales.T("title"))
-			mygoui.Typography(c, "v"+version, mygoui.TypographyOptions{
-				Type:  theme.TypeBodySM,
-				Muted: true,
-			})
 			mygoui.Typography(c, locales.T("subtitle"), mygoui.TypographyOptions{
 				Type: theme.TypeBody,
 			})
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
+		})
+		ui.Row(c).Gap(theme.Space(4)).Children(func() {
+			m.card(c, locales.T("hint_sidebar"))
 		})
 		ui.Row(c).Gap(theme.Space(4)).Children(func() {
 			m.card(c, locales.T("hint_sidebar"))

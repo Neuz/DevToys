@@ -4,11 +4,15 @@ import (
 	"github.com/Cyenoch/mygoui"
 	"github.com/Cyenoch/mygoui/layout"
 	"github.com/Cyenoch/mygoui/theme"
+	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
 )
 
 // titleBarHeight 是创建窗口时为原生标题栏预留的高度（DIP）。
 const titleBarHeight float32 = 44
+
+// titleBarBlur 是标题栏玻璃的模糊半径（DIP）。
+const titleBarBlur float32 = 22
 
 // titleBarOptions 配置标题栏。
 type titleBarOptions struct {
@@ -56,15 +60,24 @@ func (s *Shell) titleBar(c *ui.Context, o titleBarOptions) {
 			})
 		},
 		Trailing: trailing,
+	}).Material(glass.Blur{
+		Radius: titleBarBlur,
+		// 顶部最模糊、向下渐弱：内容从栏下滚过时像穿过毛玻璃。
+		Mask: &ui.LinearGradient{From: ui.RGB(0, 0, 0), To: ui.Transparent, Angle: 180},
 	})
+}
+
+// barHeight 是 layout.TitleBar 实际绘制的高度（DIP）：原生带（含 MinHeight）
+// 与按钮行高取大，低于它栏不会再矮。
+func barHeight(c *ui.Context) float32 {
+	return max(titleBarHeight/c.Zoom(), c.TitleBar().Height,
+		theme.Scale(c, theme.HeightButtonSM)+2*theme.Scale(c, theme.Space(2)))
 }
 
 // fitsSubtitle 报告标题栏是否高到能同时放下标题与副标题两行。
 // 高度按 layout.TitleBar 的规则估算：原生带（含 MinHeight）与按钮行高取大；
 // 两行文字的高度取自语义排版令牌，跟随文字缩放一起变大。
 func fitsSubtitle(c *ui.Context) bool {
-	height := max(titleBarHeight/c.Zoom(), c.TitleBar().Height)
-	height = max(height, theme.Scale(c, theme.HeightButtonSM)+2*theme.Scale(c, theme.Space(2)))
 	lines := theme.TypeBodySM.Style().LineHeight + theme.TypeBodyXS.Style().LineHeight
-	return height >= theme.Scale(c, lines)
+	return barHeight(c) >= theme.Scale(c, lines)
 }
