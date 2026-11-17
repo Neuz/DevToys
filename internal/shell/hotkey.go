@@ -12,18 +12,24 @@ import (
 
 // bindHotkey 用 acc 替换当前的全局快捷键；空串表示不注册。
 func (s *Shell) bindHotkey(acc string) {
-	if s.hotkeyGlobal != "" {
-		mygo.GlobalShortcut.Unregister(s.hotkeyGlobal)
-		s.hotkeyGlobal = ""
+	s.unregisterHotkey()
+	if acc != "" {
+		if err := mygo.GlobalShortcut.Register(acc, s.toggleMain); err != nil {
+			s.log.Warn("shell: registering the global hotkey", "hotkey", acc, "error", err)
+		} else {
+			s.hotkeyGlobal = acc
+		}
 	}
-	if acc == "" {
+	s.refreshTrayMenu() // 刷新托盘菜单的快捷键显示
+}
+
+// unregisterHotkey 注销已注册的全局快捷键；没有注册时什么也不做。
+func (s *Shell) unregisterHotkey() {
+	if s.hotkeyGlobal == "" {
 		return
 	}
-	if err := mygo.GlobalShortcut.Register(acc, s.toggleMain); err != nil {
-		s.log.Warn("shell: registering the global hotkey", "hotkey", acc, "error", err)
-		return
-	}
-	s.hotkeyGlobal = acc
+	mygo.GlobalShortcut.Unregister(s.hotkeyGlobal)
+	s.hotkeyGlobal = ""
 }
 
 // applySidebarHotkey 记下应用内折叠/展开侧栏的组合，并让主窗口重绘以换绑。

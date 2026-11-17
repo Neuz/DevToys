@@ -27,7 +27,6 @@ func (m *Module) View(c *ui.Context) {
 		})
 		ui.Row(c).Gap(theme.Space(4)).Children(func() {
 			m.card(c, locales.T("hint_sidebar"))
-			m.card(c, locales.T("hint_titlebar"))
 		})
 		m.demoSection(c)
 	})

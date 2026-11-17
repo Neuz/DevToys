@@ -142,6 +142,7 @@ func (s *Shell) ready() {
 		if s.settingsWin != nil {
 			s.settingsWin.SetTitle(locales.SettingsTitle())
 		}
+		s.refreshTrayMenu()
 		s.invalidateAll()
 	})
 
@@ -238,10 +239,7 @@ func (s *Shell) close() {
 		for _, r := range s.runners {
 			r.Close()
 		}
-		if s.hotkeyGlobal != "" {
-			mygo.GlobalShortcut.Unregister(s.hotkeyGlobal)
-			s.hotkeyGlobal = ""
-		}
+		s.unregisterHotkey()
 		if s.tray != nil {
 			s.tray.Destroy()
 		}

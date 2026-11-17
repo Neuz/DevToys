@@ -67,5 +67,9 @@
   "settings_checkForUpdates": "检查更新...",
   "@settings_checkForUpdates": {
     "description": "设置窗口中检查更新选项的标题。"
+  },
+  "tray_show_hide": "显示/隐藏主窗体",
+  "@tray_show_hide": {
+    "description": "托盘右键菜单中用于显示或隐藏主窗口的一项，右侧显示已设置的全局快捷键。"
   }
 }

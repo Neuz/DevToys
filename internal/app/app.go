@@ -7,9 +7,9 @@ import (
 	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/internal/contract"
 	"github.com/Neuz/DevToys/internal/features/welcome"
-	"github.com/Neuz/DevToys/internal/kit"
 	"github.com/Neuz/DevToys/internal/logging"
 	"github.com/Neuz/DevToys/internal/shell"
+	"github.com/Neuz/DevToys/resources"
 	"github.com/egoist/mygo"
 )
 
@@ -34,6 +34,11 @@ func Run() error {
 	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) { _ = closeLog() })
 	slog.SetDefault(logger)
 
+	icon, err := resources.AppIconPNG()
+	if err != nil {
+		return err
+	}
+
 	opts := shell.Options{
 		Name:      mygo.App.Name(),
 		Modules:   setupModules(),
@@ -44,8 +49,8 @@ func Run() error {
 		Config:    &cfg,
 		Log:       logger,
 		Tray: &shell.Tray{
-			Icon:    kit.TrayIcon(),
-			ToolTip: "DevToys",
+			Icon:    icon,
+			ToolTip: mygo.App.Name(),
 		},
 	}
 	if err := shell.Run(opts); err != nil {

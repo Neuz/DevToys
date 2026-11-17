@@ -24,7 +24,7 @@ cmd/devtoys           入口：单实例锁，调用 app.Run
    │
  features/*           功能页：welcome
    │
- task · kit · config · logging · fsx   基础设施
+ task · config · logging · fsx   基础设施
 ```
 
 依赖方向只能自上而下。`app` 是唯一同时认识 `shell` 和 `features` 的地方。
@@ -46,13 +46,13 @@ DevToys/
 │   ├── contract/contract.go   Module / Live / Host
 │   ├── features/
 │   │   └── welcome/           欢迎页（示例模块，带侧栏图标）
-│   │       ├── module.go      模块声明：ID、分组、标题、图标、Init
-│   │       ├── view.go        页面内容
+│   │       ├── module.go      模块声明：ID、分组、标题、图标、状态、Init
+│   │       ├── view.go        页面内容（只渲染）
+│   │       ├── actions.go     界面触发的动作（起后台任务等）
 │   │       └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
 │   ├── task/task.go           后台任务 runner，结果经 post 回到主线程
 │   ├── config/                config.json 的读写与规范化
 │   ├── logging/               slog 日志器（dev 文本 / prod JSON）
-│   ├── kit/trayicon.go        程序化生成托盘 PNG
 │   └── fsx/atomic.go          原子写文件（临时文件 + fsync + rename）
 ├── locales/                   外壳与公共文案：en.json、zh-Hans.json、catalog_gen.go（生成）
 ├── mygo.json                  mygo 应用清单：入口、i18n 目录、更新源
@@ -163,7 +163,7 @@ func (m *Module) View(c *ui.Context) {
 
 ## 托盘
 
-- `kit.TrayIcon()` 程序化生成 32×32 PNG（macOS 用黑色模板图标，其他平台用强调色）。
+- 托盘图标复用 `resources.AppIconPNG()` 的 `icon.png`，与窗口图标一致。
 - `shell` 用 `mygo.NewTray` 创建托盘图标，点击或右键都显示主窗口并获取焦点；本期没有 Flyout 面板，需要启动器时再加。
 - 有托盘时关闭主窗口只是隐藏（macOS 上同时把激活策略切成 Accessory），只有 `Quit` 才真正退出并销毁托盘。
 

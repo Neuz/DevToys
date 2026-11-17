@@ -275,3 +275,17 @@ func SettingsCheckForUpdates() string { return In(i18n.Locale()).SettingsCheckFo
 func (msgs Messages) SettingsCheckForUpdates() string {
 	return Catalog.Format(msgs.locale, "settings_checkForUpdates", nil)
 }
+
+// TrayShowHide says "显示/隐藏主窗体"
+// in the language the app shows.
+//
+// 托盘右键菜单中用于显示或隐藏主窗口的一项，右侧显示已设置的全局快捷键。
+func TrayShowHide() string { return In(i18n.Locale()).TrayShowHide() }
+
+// TrayShowHide says "显示/隐藏主窗体"
+// in the language of msgs.
+//
+// 托盘右键菜单中用于显示或隐藏主窗口的一项，右侧显示已设置的全局快捷键。
+func (msgs Messages) TrayShowHide() string {
+	return Catalog.Format(msgs.locale, "tray_show_hide", nil)
+}

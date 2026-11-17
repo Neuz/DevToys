@@ -12,54 +12,52 @@ import (
 	"github.com/egoist/mygo"
 )
 
+// filename 是日志目录下的日志文件名。
 const filename = "devtoys.log"
 
-func defaultDir() (string, error) {
+// New 创建应用日志器：始终追加写日志文件，开发模式或 debug 级别时同时写
+// stderr。第二个返回值用于关闭日志文件。
+func New(cfg config.Config) (*slog.Logger, func() error, error) {
+	dir, err := logDir()
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, nil, fmt.Errorf("创建日志目录 %q: %w", dir, err)
+	}
+	f, err := os.OpenFile(filepath.Join(dir, filename), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return nil, nil, fmt.Errorf("打开日志文件: %w", err)
+	}
+
+	lv := parseLevel(string(cfg.LogLevel))
+	opts := &slog.HandlerOptions{Level: lv}
+	return slog.New(slog.NewTextHandler(output(f, lv), opts)), f.Close, nil
+}
+
+// logDir 返回日志目录：用户配置目录下的应用名目录。
+func logDir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("获取用户配置目录: %w", err)
 	}
 	return filepath.Join(base, mygo.App.Name()), nil
 }
 
-// New 创建应用日志器。
-// 日志级别根据配置文件中的 LogLevel 设置。
-// 日志文件在 defaultDir 下，文件名是 filename。
-func New(cfg config.Config) (*slog.Logger, func() error, error) {
-	logDir, err := defaultDir()
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := os.MkdirAll(logDir, 0o755); err != nil {
-		return nil, nil, err
-	}
-	f, err := os.OpenFile(filepath.Join(logDir, filename), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	lv, err := parseLevelFrom(cfg.LogLevel)
-	if err != nil {
-		lv = slog.LevelInfo
-	}
-	opts := &slog.HandlerOptions{Level: lv}
-	var w io.Writer = f
-	var handler slog.Handler
-
-	switch opts.Level {
-	case slog.LevelDebug:
-		w = io.MultiWriter(f, os.Stderr)
-		handler = slog.NewTextHandler(w, opts)
-	default:
-		handler = slog.NewJSONHandler(w, opts)
-	}
-	return slog.New(handler), f.Close, nil
-}
-
-func parseLevelFrom(s string) (slog.Level, error) {
+// parseLevel 解析配置里的级别；空值或无效值回退到 info。
+func parseLevel(s string) slog.Level {
 	var lv slog.Level
 	if err := lv.UnmarshalText([]byte(s)); err != nil {
-		return lv, fmt.Errorf("解析日志级别 %q: %w", s, err)
+		return slog.LevelInfo
 	}
-	return lv, nil
+	return lv
+}
+
+// output 返回日志的写入目标：平时只写文件，开发模式或 debug 级别时同时写
+// stderr，方便在终端查看。
+func output(f *os.File, lv slog.Level) io.Writer {
+	if mygo.IsDev() || lv <= slog.LevelDebug {
+		return io.MultiWriter(f, os.Stderr)
+	}
+	return f
 }
