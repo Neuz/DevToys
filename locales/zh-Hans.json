@@ -10,7 +10,7 @@
   },
   "settings_hotkeys": "快捷键",
   "@settings_hotkeys": {
-    "description": "包含全局与应用内快捷键的设置选项卡。"
+    "description": "包含外壳快捷键的设置选项卡。"
   },
   "settings_hotkey_unset": "未设置",
   "@settings_hotkey_unset": {
@@ -24,13 +24,13 @@
   "@settings_hotkey_global_window_toggle": {
     "description": "全局快捷键中用于显示或隐藏主窗口的一行。"
   },
-  "settings_hotkey_app": "应用内快捷键",
-  "@settings_hotkey_app": {
-    "description": "窗口获得焦点时才生效的快捷键分组。"
+  "settings_start_at_login": "开机启动",
+  "@settings_start_at_login": {
+    "description": "设置窗口中让应用随系统登录启动的一行。"
   },
-  "settings_hotkey_app_sidebar_toggle": "折叠/展开侧边栏",
-  "@settings_hotkey_app_sidebar_toggle": {
-    "description": "应用内快捷键中用于折叠或展开侧边栏的一行。"
+  "settings_start_at_login_dev": "打包版本才生效",
+  "@settings_start_at_login_dev": {
+    "description": "开发模式下开机启动不可用时的提示。"
   },
   "settings_theme": "外观",
   "@settings_theme": {

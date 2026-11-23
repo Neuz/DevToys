@@ -1,6 +1,11 @@
 // Package config 保存用户偏好。
 package config
 
+import (
+	"encoding/json"
+	"log/slog"
+)
+
 // ThemeMode 是界面主题的选择。
 type ThemeMode string
 
@@ -33,12 +38,12 @@ type Config struct {
 	Theme    ThemeMode    `json:"theme"`
 	Locale   string       `json:"locale"`
 	Hotkey   HotkeyConfig `json:"hotkey"`
+	Features Features     `json:"features,omitempty"`
 }
 
-// HotkeyConfig 是按作用域分组的快捷键；空字符串表示未设置。
+// HotkeyConfig 是外壳自己使用的快捷键；空字符串表示未设置。
 type HotkeyConfig struct {
 	Global GlobalHotkey `json:"global"`
-	App    AppHotkey    `json:"app"`
 }
 
 // GlobalHotkey 是系统级全局快捷键。
@@ -47,10 +52,52 @@ type GlobalHotkey struct {
 	WindowToggle string `json:"window_toggle"`
 }
 
-// AppHotkey 是仅在应用窗口内生效的快捷键。
-type AppHotkey struct {
-	// SidebarToggle 折叠/展开侧边栏；空表示不响应。
-	SidebarToggle string `json:"sidebar_toggle"`
+// Features 以模块 ID 为键保存各功能的开关、快捷键与私有配置。
+// 没有出现的模块视为启用。
+type Features map[string]*Feature
+
+// Feature 是一个功能模块的配置。
+type Feature struct {
+	Enabled bool              `json:"enabled"`
+	Hotkeys map[string]string `json:"hotkeys,omitempty"` // 热键 ID → accelerator
+	Options json.RawMessage   `json:"options,omitempty"` // 该功能自己的配置
+}
+
+// UnmarshalJSON 让省略 enabled 的节点仍然启用，避免手写配置意外关掉功能。
+func (f *Feature) UnmarshalJSON(data []byte) error {
+	type plain Feature
+	p := plain{Enabled: true}
+	if err := json.Unmarshal(data, &p); err != nil {
+		return err
+	}
+	*f = Feature(p)
+	return nil
+}
+
+// FeatureNode 返回 id 的配置节点，缺失时创建并写入 map，供功能模块直接改写。
+func (c *Config) FeatureNode(id string) *Feature {
+	if c.Features == nil {
+		c.Features = make(Features)
+	}
+	if f, ok := c.Features[id]; ok && f != nil {
+		return f
+	}
+	f := &Feature{Enabled: true}
+	c.Features[id] = f
+	return f
+}
+
+// DecodeOptions 把节点里的 options 解成 T；缺失或解析失败时返回 def。
+func DecodeOptions[T any](id string, node *Feature, def T) T {
+	if node == nil || len(node.Options) == 0 {
+		return def
+	}
+	var v T
+	if err := json.Unmarshal(node.Options, &v); err != nil {
+		slog.Warn("config: 功能配置解析失败", "feature", id, "error", err)
+		return def
+	}
+	return v
 }
 
 // Default 返回首次运行使用的配置。

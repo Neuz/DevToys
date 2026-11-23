@@ -65,13 +65,13 @@ func (msgs Messages) SettingsGeneral() string {
 // SettingsHotkeys says "快捷键"
 // in the language the app shows.
 //
-// 包含全局与应用内快捷键的设置选项卡。
+// 包含外壳快捷键的设置选项卡。
 func SettingsHotkeys() string { return In(i18n.Locale()).SettingsHotkeys() }
 
 // SettingsHotkeys says "快捷键"
 // in the language of msgs.
 //
-// 包含全局与应用内快捷键的设置选项卡。
+// 包含外壳快捷键的设置选项卡。
 func (msgs Messages) SettingsHotkeys() string {
 	return Catalog.Format(msgs.locale, "settings_hotkeys", nil)
 }
@@ -120,34 +120,32 @@ func (msgs Messages) SettingsHotkeyGlobalWindowToggle() string {
 	return Catalog.Format(msgs.locale, "settings_hotkey_global_window_toggle", nil)
 }
 
-// SettingsHotkeyApp says "应用内快捷键"
+// SettingsStartAtLogin says "开机启动"
 // in the language the app shows.
 //
-// 窗口获得焦点时才生效的快捷键分组。
-func SettingsHotkeyApp() string { return In(i18n.Locale()).SettingsHotkeyApp() }
+// 设置窗口中让应用随系统登录启动的一行。
+func SettingsStartAtLogin() string { return In(i18n.Locale()).SettingsStartAtLogin() }
 
-// SettingsHotkeyApp says "应用内快捷键"
+// SettingsStartAtLogin says "开机启动"
 // in the language of msgs.
 //
-// 窗口获得焦点时才生效的快捷键分组。
-func (msgs Messages) SettingsHotkeyApp() string {
-	return Catalog.Format(msgs.locale, "settings_hotkey_app", nil)
+// 设置窗口中让应用随系统登录启动的一行。
+func (msgs Messages) SettingsStartAtLogin() string {
+	return Catalog.Format(msgs.locale, "settings_start_at_login", nil)
 }
 
-// SettingsHotkeyAppSidebarToggle says "折叠/展开侧边栏"
+// SettingsStartAtLoginDev says "打包版本才生效"
 // in the language the app shows.
 //
-// 应用内快捷键中用于折叠或展开侧边栏的一行。
-func SettingsHotkeyAppSidebarToggle() string {
-	return In(i18n.Locale()).SettingsHotkeyAppSidebarToggle()
-}
+// 开发模式下开机启动不可用时的提示。
+func SettingsStartAtLoginDev() string { return In(i18n.Locale()).SettingsStartAtLoginDev() }
 
-// SettingsHotkeyAppSidebarToggle says "折叠/展开侧边栏"
+// SettingsStartAtLoginDev says "打包版本才生效"
 // in the language of msgs.
 //
-// 应用内快捷键中用于折叠或展开侧边栏的一行。
-func (msgs Messages) SettingsHotkeyAppSidebarToggle() string {
-	return Catalog.Format(msgs.locale, "settings_hotkey_app_sidebar_toggle", nil)
+// 开发模式下开机启动不可用时的提示。
+func (msgs Messages) SettingsStartAtLoginDev() string {
+	return Catalog.Format(msgs.locale, "settings_start_at_login_dev", nil)
 }
 
 // SettingsTheme says "外观"

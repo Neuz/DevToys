@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/Cyenoch/mygoui"
-	"github.com/Cyenoch/mygoui/form"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/internal/contract"
@@ -58,11 +57,11 @@ type Shell struct {
 	// scroll 是内容区的滚动位置，跨帧保存。
 	scroll ui.ScrollState
 
-	// hotkeyGlobal 是已注册的全局快捷键 accelerator，空表示没有。
+	// hotkeyGlobal 是主窗口显隐实际注册的 accelerator，空表示没有；供托盘菜单展示。
 	hotkeyGlobal string
 
-	// sidebarHotkey 是应用内折叠/展开侧栏的组合；KeyUnknown 表示未设置。
-	sidebarHotkey form.Hotkey
+	// hotkeys 是当前已注册的全部全局快捷键。
+	hotkeys []string
 
 	log       *slog.Logger
 	quitting  bool
@@ -114,7 +113,6 @@ func newShell(opts Options) *Shell {
 	if _, ok := s.byID[s.current]; !ok {
 		s.current = s.modules[0].ID()
 	}
-	s.sidebarHotkey = parseHotkey(opts.Config.Hotkey.App.SidebarToggle)
 	return s
 }
 
@@ -135,7 +133,7 @@ func (s *Shell) ready() {
 	for _, m := range s.modules {
 		runner := task.NewRunner(s.win.Update)
 		s.runners = append(s.runners, runner)
-		m.Init(host{tasks: runner, log: s.log.With("module", m.ID())})
+		m.Init(host{shell: s, id: m.ID(), tasks: runner, log: s.log.With("module", m.ID())})
 	}
 	mygo.Theme.OnUpdated(s.invalidateAll)
 	mygo.App.OnLocaleChanged(func(string) {
@@ -157,16 +155,13 @@ func (s *Shell) ready() {
 	if s.opts.Tray != nil {
 		s.setupTray()
 	}
-	s.bindHotkey(s.opts.Config.Hotkey.Global.WindowToggle)
+	s.rebindHotkeys()
 	s.activate(s.current)
 }
 
 // view 只做组装：左侧整列 Sidebar，右侧是标题栏与可滚动的内容区。
 func (s *Shell) view(c *ui.Context) {
 	theme.Apply(c)
-	if k := s.sidebarHotkey; k.Key != ui.KeyUnknown {
-		c.OnWindowShortcut(k.Mods, k.Key, s.toggleSidebar)
-	}
 	t := theme.Colors(c)
 
 	m := s.byID[s.current]
@@ -244,18 +239,25 @@ func (s *Shell) showMain(id string) {
 // close 关闭所有 runner、销毁托盘并注销全局快捷键；由 OnBeforeQuit 调用。
 func (s *Shell) close() {
 	s.closeOnce.Do(func() {
+		for _, m := range s.modules {
+			if c, ok := m.(contract.Closer); ok {
+				c.Close()
+			}
+		}
 		for _, r := range s.runners {
 			r.Close()
 		}
-		s.unregisterHotkey()
+		s.unregisterHotkeys()
 		if s.tray != nil {
 			s.tray.Destroy()
 		}
 	})
 }
 
-// host 把 runner 与日志器交给功能模块。
+// host 把 runner、日志与配置交给功能模块。
 type host struct {
+	shell *Shell
+	id    string
 	tasks *task.Runner
 	log   *slog.Logger
 }
@@ -263,3 +265,19 @@ type host struct {
 func (h host) Tasks() *task.Runner { return h.tasks }
 
 func (h host) Log() *slog.Logger { return h.log }
+
+func (h host) Feature() *config.Feature { return h.shell.opts.Config.FeatureNode(h.id) }
+
+func (h host) SaveConfig() error { return h.shell.opts.Config.Save() }
+
+func (h host) SetEnabled(enabled bool) error {
+	h.Feature().Enabled = enabled
+	if err := h.SaveConfig(); err != nil {
+		return err
+	}
+	h.shell.rebindHotkeys()
+	h.shell.invalidateAll()
+	return nil
+}
+
+func (h host) HotkeysChanged() { h.shell.rebindHotkeys() }

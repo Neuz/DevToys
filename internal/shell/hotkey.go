@@ -1,51 +1,65 @@
 package shell
 
 import (
-	"runtime"
-	"strconv"
-	"strings"
-
-	"github.com/Cyenoch/mygoui/form"
+	"github.com/Neuz/DevToys/internal/contract"
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/ui"
 )
 
-// bindHotkey 用 acc 替换当前的全局快捷键；空串表示不注册。
-func (s *Shell) bindHotkey(acc string) {
-	s.unregisterHotkey()
-	if acc != "" {
-		if err := mygo.GlobalShortcut.Register(acc, s.toggleMain); err != nil {
-			s.log.Warn("shell: registering the global hotkey", "hotkey", acc, "error", err)
-		} else {
-			s.hotkeyGlobal = acc
+// rebindHotkeys 注销并重新注册外壳与所有启用模块的全局快捷键。
+// 快捷键或功能的启用状态变化后都要调用它。
+func (s *Shell) rebindHotkeys() {
+	s.unregisterHotkeys()
+	s.hotkeyGlobal = s.registerHotkey("shell.window_toggle", s.opts.Config.Hotkey.Global.WindowToggle, s.toggleMain)
+	for _, m := range s.modules {
+		hk, ok := m.(contract.GlobalHotkeyer)
+		if !ok || !moduleEnabled(m) {
+			continue
+		}
+		for _, h := range hk.Hotkeys() {
+			// 配置里没有这个键才算「未自定义」，回退默认；键存在但值为空
+			// 表示用户显式删除，此时不注册任何快捷键。
+			acc, ok := s.opts.Config.FeatureNode(m.ID()).Hotkeys[h.ID]
+			if !ok {
+				acc = h.Default
+			}
+			s.registerHotkey(m.ID()+"."+h.ID, acc, h.Run)
 		}
 	}
-	s.refreshTrayMenu() // 刷新托盘菜单的快捷键显示
+	s.refreshTrayMenu()
 }
 
-// unregisterHotkey 注销已注册的全局快捷键；没有注册时什么也不做。
-func (s *Shell) unregisterHotkey() {
-	if s.hotkeyGlobal == "" {
-		return
+// registerHotkey 注册一个全局快捷键，返回实际生效的 accelerator。
+// 重复或注册失败时返回空串，只记一条 warn，不影响其他绑定。
+func (s *Shell) registerHotkey(id, acc string, run func()) string {
+	if acc == "" {
+		return ""
 	}
-	mygo.GlobalShortcut.Unregister(s.hotkeyGlobal)
-	s.hotkeyGlobal = ""
+	for _, got := range s.hotkeys {
+		if got == acc {
+			s.log.Warn("shell: 全局快捷键重复", "id", id, "hotkey", acc)
+			return ""
+		}
+	}
+	if err := mygo.GlobalShortcut.Register(acc, run); err != nil {
+		s.log.Warn("shell: 注册全局快捷键", "id", id, "hotkey", acc, "error", err)
+		return ""
+	}
+	s.hotkeys = append(s.hotkeys, acc)
+	return acc
 }
 
-// applySidebarHotkey 记下应用内折叠/展开侧栏的组合，并让主窗口重绘以换绑。
-func (s *Shell) applySidebarHotkey(acc string) {
-	s.sidebarHotkey = parseHotkey(acc)
-	if s.win != nil {
-		s.win.Invalidate()
+// unregisterHotkeys 注销全部全局快捷键；没有注册时什么也不做。
+func (s *Shell) unregisterHotkeys() {
+	for _, acc := range s.hotkeys {
+		mygo.GlobalShortcut.Unregister(acc)
 	}
+	s.hotkeys = nil
 }
 
-// toggleSidebar 折叠或展开侧栏。
-func (s *Shell) toggleSidebar() {
-	s.collapsed = !s.collapsed
-	if s.win != nil {
-		s.win.Invalidate()
-	}
+// moduleEnabled 报告模块是否启用；没有实现 contract.Toggleable 的模块始终启用。
+func moduleEnabled(m contract.Module) bool {
+	t, ok := m.(contract.Toggleable)
+	return !ok || t.Enabled()
 }
 
 // toggleMain 由全局快捷键调用：显示并聚焦主窗口，或把它收起来。
@@ -61,108 +75,4 @@ func (s *Shell) toggleMain() {
 		}
 		s.showMain(s.current)
 	})
-}
-
-// hotkeyAccelerator 把录制的快捷键写成 mygo 的 accelerator 文本，如
-// Ctrl+Shift+Space；没有录制时返回空串。
-func hotkeyAccelerator(h form.Hotkey) string {
-	if h.Mods == 0 {
-		return ""
-	}
-	keys := h.Keys()
-	if len(keys) == 0 {
-		return ""
-	}
-	parts := make([]string, 0, len(keys))
-	parts = append(parts, keys[:len(keys)-1]...)
-	key := keys[len(keys)-1]
-	if name, ok := acceleratorKeys[key]; ok {
-		key = name
-	}
-	return strings.Join(append(parts, key), "+")
-}
-
-// acceleratorKeys 把按键在界面上的写法换成 accelerator 认识的名字。
-var acceleratorKeys = map[string]string{
-	"Esc": "Escape",
-	"←":   "Left",
-	"→":   "Right",
-	"↑":   "Up",
-	"↓":   "Down",
-}
-
-// parseHotkey 读回配置里保存的 accelerator 文本；无法识别时返回零值。
-func parseHotkey(acc string) form.Hotkey {
-	parts := strings.Split(acc, "+")
-	if len(parts) < 2 {
-		return form.Hotkey{}
-	}
-	var h form.Hotkey
-	for _, word := range parts[:len(parts)-1] {
-		h.Mods |= acceleratorModifier(word)
-	}
-	h.Key = acceleratorKey(parts[len(parts)-1])
-	if h.Mods == 0 || h.Key == ui.KeyUnknown {
-		return form.Hotkey{}
-	}
-	return h
-}
-
-// acceleratorModifier 读出一个修饰词，与 accelerator 的词表一致。
-func acceleratorModifier(word string) ui.Modifiers {
-	switch strings.ToLower(word) {
-	case "command", "cmd", "super", "meta", "win":
-		return ui.Super
-	case "control", "ctrl":
-		return ui.Ctrl
-	case "cmdorctrl":
-		if runtime.GOOS == "darwin" {
-			return ui.Super
-		}
-		return ui.Ctrl
-	case "alt", "option":
-		return ui.Alt
-	case "shift":
-		return ui.Shift
-	}
-	return 0
-}
-
-// acceleratorKey 读出一个按键名，与 accelerator 的词表一致。
-func acceleratorKey(name string) ui.Key {
-	if len(name) == 1 {
-		c := name[0]
-		switch {
-		case c >= 'a' && c <= 'z':
-			return ui.KeyA + ui.Key(c-'a')
-		case c >= 'A' && c <= 'Z':
-			return ui.KeyA + ui.Key(c-'A')
-		case c >= '0' && c <= '9':
-			return ui.Key0 + ui.Key(c-'0')
-		}
-	}
-	lower := strings.ToLower(name)
-	if len(lower) > 1 && lower[0] == 'f' {
-		if n, err := strconv.Atoi(lower[1:]); err == nil && n >= 1 && n <= 12 {
-			return ui.KeyF1 + ui.Key(n-1)
-		}
-	}
-	return acceleratorKeyCodes[lower]
-}
-
-// acceleratorKeyCodes 是命名按键与 accelerator 词表的对照。
-var acceleratorKeyCodes = map[string]ui.Key{
-	"escape": ui.KeyEscape, "esc": ui.KeyEscape,
-	"enter": ui.KeyEnter, "return": ui.KeyEnter,
-	"space": ui.KeySpace, "tab": ui.KeyTab,
-	"backspace": ui.KeyBackspace,
-	"delete":    ui.KeyDelete, "del": ui.KeyDelete,
-	"insert": ui.KeyInsert,
-	"home":   ui.KeyHome, "end": ui.KeyEnd,
-	"pageup": ui.KeyPageUp, "pagedown": ui.KeyPageDown,
-	"left": ui.KeyLeft, "right": ui.KeyRight, "up": ui.KeyUp, "down": ui.KeyDown,
-	"-": ui.KeyMinus, "=": ui.KeyEqual, ",": ui.KeyComma, ".": ui.KeyPeriod,
-	"/": ui.KeySlash, ";": ui.KeySemicolon, "'": ui.KeyQuote,
-	"[": ui.KeyBracketLeft, "]": ui.KeyBracketRight, "\\": ui.KeyBackslash,
-	"`": ui.KeyBackquote,
 }

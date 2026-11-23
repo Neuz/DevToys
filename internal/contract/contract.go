@@ -7,6 +7,7 @@ package contract
 import (
 	"log/slog"
 
+	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/internal/task"
 	"github.com/egoist/mygo/ui"
 )
@@ -17,6 +18,14 @@ type Host interface {
 	Tasks() *task.Runner
 	// Log 返回带应用标识的日志器。
 	Log() *slog.Logger
+	// Feature 返回本功能的配置节点，功能只应改写自己的节点。
+	Feature() *config.Feature
+	// SaveConfig 持久化当前配置。
+	SaveConfig() error
+	// SetEnabled 保存启用状态并让外壳立即生效。
+	SetEnabled(enabled bool) error
+	// HotkeysChanged 通知外壳重新绑定全局快捷键。
+	HotkeysChanged()
 }
 
 // Module 是主窗口中的一个功能页面。
@@ -35,4 +44,29 @@ type Module interface {
 type Live interface {
 	OnActivate()
 	OnDeactivate()
+}
+
+// Toggleable 是模块可选实现的能力：外壳按它决定是否注册全局快捷键。
+// 没有实现它的模块始终启用。
+type Toggleable interface {
+	Module
+	Enabled() bool
+}
+
+// GlobalHotkeyer 是模块可选实现的能力：声明自己需要的全局快捷键。
+type GlobalHotkeyer interface {
+	Hotkeys() []Hotkey
+}
+
+// Hotkey 是一个全局快捷键。ID 用于配置与冲突提示，Accel 为空时使用 Default。
+type Hotkey struct {
+	ID          string
+	Default     string
+	Description string
+	Run         func()
+}
+
+// Closer 是模块可选实现的能力：外壳在退出时调用它释放资源。
+type Closer interface {
+	Close()
 }

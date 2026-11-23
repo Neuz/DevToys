@@ -22,7 +22,7 @@ cmd/devtoys           入口：单实例锁，调用 app.Run
    │
  contract             外壳 ↔ 功能的唯一契约（接口）
    │
- features/*           功能页：welcome
+ features/*           功能页：welcome · launcher
    │
  task · config · logging · fsx   基础设施
 ```
@@ -43,13 +43,21 @@ DevToys/
 │   │   ├── settings.go        设置窗口：独立弹出窗口，通用（外观 + 语言）与快捷键两个选项卡
 │   │   ├── hotkey.go          快捷键：accelerator 转换、全局注册、应用内响应与显示/隐藏主窗口
 │   │   └── tray.go            托盘图标：右键菜单（显示/隐藏、检查更新、退出）
-│   ├── contract/contract.go   Module / Live / Host
+│   ├── contract/contract.go   Module / Live / Toggleable / GlobalHotkeyer / Closer / Host
 │   ├── features/
-│   │   └── welcome/           欢迎页（示例模块，带侧栏图标）
-│   │       ├── module.go      模块声明：ID、分组、标题、图标、状态、Init
-│   │       ├── view.go        页面内容（只渲染）
-│   │       ├── actions.go     界面触发的动作（起后台任务等）
-│   │       └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
+│   │   ├── welcome/           欢迎页（示例模块，带侧栏图标）
+│   │   │   ├── module.go      模块声明：ID、分组、标题、图标、状态、Init
+│   │   │   ├── view.go        页面内容（只渲染）
+│   │   │   ├── actions.go     界面触发的动作（起后台任务等）
+│   │   │   └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
+│   │   └── launcher/          全局启动器：快捷键唤起浮层，搜索并启动已安装应用
+│   │       ├── module.go      模块契约、触发快捷键与图标缓存
+│   │       ├── index.go       列出已安装应用、生成别名/拼音关键字、后台重建索引
+│   │       ├── store.go       bbolt 持久化：索引条目与使用记录
+│   │       ├── search.go      多词/拼音过滤、按使用记录排序
+│   │       ├── panel.go       浮层面板的创建、定位、显示与隐藏
+│   │       ├── view.go        设置页与面板渲染
+│   │       └── locales/       该模块自己的文案
 │   ├── task/task.go           后台任务 runner，结果经 post 回到主线程
 │   ├── config/                config.json 的读写与规范化
 │   ├── logging/               slog 日志器（文本输出，dev 或 debug 时同时写 stderr）
@@ -73,9 +81,12 @@ DevToys/
 
 | 接口 | 用途 | 实现方 |
 | --- | --- | --- |
-| `Module` | 主窗口功能页：`ID`、`Group`、`Title`、`Icon`、`Init(Host)`、`View(*ui.Context)` | `features/welcome` |
+| `Module` | 主窗口功能页：`ID`、`Group`、`Title`、`Icon`、`Init(Host)`、`View(*ui.Context)` | `features/welcome`、`features/launcher` |
 | `Live` | 可选：页面激活/离开钩子 `OnActivate` / `OnDeactivate` | 需要时由模块实现 |
-| `Host` | 外壳给功能的运行时设施：`Tasks() *task.Runner`、`Log() *slog.Logger` | `shell.host` |
+| `Toggleable` | 可选：`Enabled()`，禁用后外壳跳过它的全局快捷键 | `features/launcher` |
+| `GlobalHotkeyer` | 可选：`Hotkeys()` 声明 ID、默认 accelerator、描述与回调 | `features/launcher` |
+| `Closer` | 可选：`Close()`，退出时释放窗口、数据库等资源 | `features/launcher` |
+| `Host` | 外壳给功能的运行时设施：`Tasks`、`Log`、`Feature`（本功能的配置节点）、`SaveConfig`、`SetEnabled`、`HotkeysChanged` | `shell.host` |
 
 ## 新增一个工具页
 
@@ -133,7 +144,7 @@ func (m *Module) View(c *ui.Context) {
 - 没有原生标题栏（`TitleBarStyle: TitleBarHidden`）：页面铺满整个窗口，系统窗口按钮悬浮在页面之上。右侧标题栏按 `c.TitleBar()` 报告的结束侧 insets 留出控件空间，整条可拖动窗口；高度取「44 DIP、原生按钮带、按钮行高」三者最大值，文字缩放变大时按钮也不会被裁切。侧栏本身也标记为拖动区域，所以侧栏顶部的空白处同样可以移动窗口。
 - 侧栏展开宽度 180、折叠后 48，两个值都是 `sidebar.go` 里的常量，不可拖动调整，也不写入配置。宽度由 `mygoui.Sidebar` 自己持有并做折叠动画，右侧内容区作为 flex 兄弟节点跟着一起动，不会留下空白。
 - 侧栏底部插槽（`mygoui.SidebarOptions.Footer`）放常驻的设置入口；侧栏展开时是整行按钮，折叠后收成齿轮图标。
-- 设置按钮打开**独立的设置窗口**（`shell/settings.go`）：它是主窗口的子窗口，随主窗口显示/隐藏，但不遮挡、不阻塞主窗口；顶部是「通用 / 快捷键」两个选项卡。通用页用 `mygoui.SettingsGroup` 放外观（横向单选组）与语言（下拉选择）；快捷键页分「全局快捷键」与「应用内快捷键」两组，用 `form.HotkeyInput` 分别录制显示/隐藏窗口与折叠/展开侧边栏的组合。改动即时应用并写回 `config.json`。
+- 设置按钮打开**独立的设置窗口**（`shell/settings.go`）：它是主窗口的子窗口，随主窗口显示/隐藏，且以模态方式打开；顶部是「通用 / 快捷键」两个选项卡。通用页用 `mygoui.SettingsGroup` 放外观（横向单选组）、语言（下拉选择）与开机启动；快捷键页用 `form.HotkeyInput` 录制显示/隐藏窗口的组合。改动即时应用并写回 `config.json`。功能开关与功能自己的快捷键不在这里，由各功能的页面管理。
 - 标题栏右侧的插槽（`titleBarOptions.Trailing`）提供给调用方放操作按钮，目前留空。
 - 没有搜索框、没有工具搜索，导航就是侧栏列表。
 
@@ -147,7 +158,9 @@ func (m *Module) View(c *ui.Context) {
 | `theme` | `system` / `light` / `dark`，默认跟随系统 |
 | `locale` | `system` / `en` / `zh-Hans`，默认跟随系统 |
 | `hotkey.global.window_toggle` | 全局显示/隐藏窗口的 accelerator（如 `Ctrl+Shift+Space`），默认空，不注册 |
-| `hotkey.app.sidebar_toggle` | 应用内折叠/展开侧边栏的 accelerator，默认空，不响应 |
+| `features.<id>.enabled` | 功能是否启用，默认 `true`；禁用后该功能的全局快捷键不再注册 |
+| `features.<id>.hotkeys` | 该功能声明自己的快捷键，键是热键 ID（如 `{"toggle":"Alt+F"}`）。**缺省**时用功能内置默认值；键存在但值为空串表示用户显式删除，不注册任何快捷键 |
+| `features.<id>.options` | 该功能自己的配置，结构由功能定义 |
 
 写入走 `fsx.WriteFile`（临时文件 + fsync + rename），损坏或缺失时回退默认值；未知的 `theme`/`locale` 在读取时归一化为跟随系统。旧的扁平键 `hotkey_global` / `hotkey_sidebar` 已废弃，不再读取，升级后需在设置窗口重新录制。
 
@@ -157,9 +170,21 @@ func (m *Module) View(c *ui.Context) {
 
 **语言**：每个消息目录各自是一个 `i18n.Catalog` 并调用 `i18n.Register`，注册的语言会合并。基准语言（source）是 `zh-Hans`，`en` 作为翻译：当前语言缺词时回退到基准语言。根 `locales/` 放外壳与公共文案，由 `go tool mygo generate` 维护（改完 `zh-Hans.json` / `en.json` 执行一次，生成 `catalog_gen.go`，key 变成 `locales.SettingsTitle()` 这样的函数；`@` 描述取自基准语言 `zh-Hans.json`）；`internal/features/<name>/locales/` 归各模块自己，JSON 与 `T(key)` 入口手写，`mygo generate` 不会覆盖或校验。`T` 用 `Catalog.Format(i18n.Locale(), key, nil)` 取词，无参数消息由 i18n 缓存。运行时用 `mygo.App.SetLocale` 切换，`shell` 的 `applyLocale` 把配置里的 `system` 映射成 mygo 的空字符串（跟随系统）：外壳在首帧调用一次，之后设置窗口改动同样走这里，并由外壳统一重绘主窗口与设置窗口。
 
-**全局快捷键**：`shell` 用 `mygo.GlobalShortcut.Register` 绑定 `config.hotkey.global.window_toggle`，按 `form.HotkeyInput` 录制的组合重新注册；被占用时记一条 `warn` 并保持未注册。触发后显示并聚焦主窗口，或把主窗口收起（有托盘时等同隐藏）。
+**全局快捷键**：`shell` 用 `mygo.GlobalShortcut.Register` 统一注册，`rebindHotkeys` 先注销旧绑定再重建：外壳的 `hotkey.global.window_toggle` 加每个启用模块通过 `contract.GlobalHotkeyer` 声明的全部快捷键。重复或注册失败只记一条 `warn`，不影响其他绑定。触发窗口开关时显示并聚焦主窗口，或把主窗口收起（有托盘时等同隐藏）。
 
-**应用内快捷键**：`shell` 把 `config.hotkey.app.sidebar_toggle` 解析成 `form.Hotkey`，在主窗口根视图用 `c.OnWindowShortcut` 声明；只在窗口获得焦点时生效，按下后翻转外壳的侧栏折叠状态并重绘。
+**开机启动**：设置页的开关直接调用 `mygo.App.SetOpenAtLogin` / `OpenAtLogin`，以系统状态为唯一事实来源，不写进 `config.json`；开发模式下该开关置灰，因为 Run 项会指向临时构建产物。
+
+## 启动器
+
+启动器（`features/launcher`）是一个全局快速启动面板：
+
+- **唤起**：默认 `Alt+F`，可在启动器设置页用 `form.HotkeyInput` 重新录制；清空即删除快捷键，不会回退默认值，此后只能用设置页的【触发】按钮或侧栏打开。启用开关同样在启动器设置页，禁用后外壳不再注册它的快捷键。
+- **索引**：通过 `mygo.Shell.InstalledApps()` 列出开始菜单里的全部应用（桌面应用与打包应用），按 ID 去重；另内置一批 Windows 设置页（`ms-settings:` URI），归入「系统」分类。排除词可在设置页【排除关键词】里调整，默认是“卸载 / uninstall / readme / 帮助 / 说明 / 文档”；该项写入 `config.json` 的 `features.launcher.options`（`max_results` 5–30，`exclude` 字符串数组）。
+- **图标与描述**：图标由 `mygo.Shell.FileIcon()` 按显示缩放取 PNG，经 `ui.DecodeBitmap` 解码后按条目路径缓存；取不到时回退到名称首字头像。描述显示桌面应用的可执行文件名，打包应用显示“应用”。
+- **别名**：从应用 ID 提炼可搜索的短名——桌面应用是可执行文件名（去掉 `.exe`），打包应用是去掉 `!App` 后的包标识，因此 `code`、`windowscalculator` 之类也能命中。
+- **存储**：索引与使用记录都放在 `os.UserConfigDir()/DevToys/launcher.db`（bbolt）。设置页的【索引】行展示该文件的路径与大小，并带【重建索引】按钮；启动时先读缓存保证首帧，随后后台重新列出应用。
+- **搜索**：查询按空白分词，标题、别名、拼音都必须命中；拼音同时收录全拼与首字母，因此 `jisuanqi` 与 `jsq` 都能找到「计算器」。结果按使用次数、最近使用时间排序。
+- **面板**：每行显示应用图标、标题与描述，支持方向键移动、回车/点击启动、`Esc` 关闭；启动走 `mygo.Shell.LaunchApp`，系统设置条目走 `mygo.Shell.OpenExternal` 打开 `ms-settings:`。空查询只显示搜索框；输入后在下方出现【全部】【应用】【系统】分类控件，高度随结果条数自适应。设置页【显示结果数量】控制一次展示的条数（默认 8），超过 8 条后列表内部滚动。
 
 ## 托盘
 

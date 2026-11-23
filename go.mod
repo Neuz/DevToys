@@ -8,7 +8,9 @@ require (
 	github.com/Cyenoch/mygoicons v0.3.0
 	github.com/Cyenoch/mygoui v0.3.1
 	github.com/egoist/mygo v0.9.2
+	github.com/mozillazg/go-pinyin v0.21.0
 	github.com/samber/lo v1.53.0
+	go.etcd.io/bbolt v1.5.0
 )
 
 require (

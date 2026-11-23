@@ -9,6 +9,7 @@ import (
 	"github.com/Cyenoch/mygoui/navigation"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/config"
+	"github.com/Neuz/DevToys/internal/hotkey"
 	"github.com/Neuz/DevToys/locales"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/updater"
@@ -32,9 +33,9 @@ type settings struct {
 	mode  string
 	theme form.RadioGroupState[string]
 
-	locale        form.SelectState
-	globalHotkey  form.Hotkey
-	sidebarHotkey form.Hotkey
+	locale       form.SelectState
+	globalHotkey form.Hotkey
+	startAtLogin bool
 }
 
 // openSettings 打开设置窗口；已打开时只把它提到前面。
@@ -71,12 +72,12 @@ func (s *Shell) openSettings() {
 // newSettings 用配置里的当前值作为初始选择。
 func newSettings(s *Shell) *settings {
 	st := &settings{
-		shell:         s,
-		cfg:           s.opts.Config,
-		mode:          string(s.opts.Config.Theme),
-		locale:        form.SelectState{List: list.ListBoxState{SelectedKey: s.opts.Config.Locale}},
-		globalHotkey:  parseHotkey(s.opts.Config.Hotkey.Global.WindowToggle),
-		sidebarHotkey: parseHotkey(s.opts.Config.Hotkey.App.SidebarToggle),
+		shell:        s,
+		cfg:          s.opts.Config,
+		mode:         string(s.opts.Config.Theme),
+		locale:       form.SelectState{List: list.ListBoxState{SelectedKey: s.opts.Config.Locale}},
+		globalHotkey: hotkey.Parse(s.opts.Config.Hotkey.Global.WindowToggle),
+		startAtLogin: mygo.App.OpenAtLogin(),
 	}
 	st.theme = form.RadioGroupState[string]{Selected: &st.mode, OnChange: st.changeTheme}
 	return st
@@ -152,6 +153,18 @@ func (s *Shell) generalSection(c *ui.Context) {
 					},
 					Control: &st.locale.Trigger,
 				},
+				{
+					Icon:     lucide.Power(),
+					Title:    locales.SettingsStartAtLogin(),
+					Subtitle: startAtLoginHint(),
+					Trailing: func() {
+						form.Switch(c, form.SwitchOptions{
+							On:       &st.startAtLogin,
+							Disabled: mygo.IsDev(),
+							OnChange: st.changeStartAtLogin,
+						})
+					},
+				},
 			},
 		}).Grow(1)
 
@@ -176,7 +189,7 @@ func (s *Shell) generalSection(c *ui.Context) {
 	})
 }
 
-// hotkeysSection 是“快捷键”标签页：全局快捷键与应用内快捷键。
+// hotkeysSection 是“快捷键”标签页：外壳自己的全局快捷键。
 func (s *Shell) hotkeysSection(c *ui.Context) {
 	st := s.settings
 	ui.Column(c).FillWidth().Gap(theme.Space(4)).Children(func() {
@@ -192,23 +205,6 @@ func (s *Shell) hotkeysSection(c *ui.Context) {
 							Placeholder: locales.SettingsHotkeyUnset(),
 							Clearable:   true,
 							OnChange:    st.changeGlobalHotkey,
-						})
-					},
-				},
-			},
-		})
-		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
-			Title: locales.SettingsHotkeyApp(),
-			Rows: []mygoui.SettingsRow{
-				{
-					Icon:  lucide.PanelLeft(),
-					Title: locales.SettingsHotkeyAppSidebarToggle(),
-					Trailing: func() {
-						form.HotkeyInput(c, &st.sidebarHotkey, form.HotkeyInputOptions{
-							AriaLabel:   locales.SettingsHotkeyAppSidebarToggle(),
-							Placeholder: locales.SettingsHotkeyUnset(),
-							Clearable:   true,
-							OnChange:    st.changeSidebarHotkey,
 						})
 					},
 				},
@@ -236,16 +232,28 @@ func (st *settings) changeLocale(keys []string) {
 
 // changeGlobalHotkey 重新注册全局快捷键并保存。
 func (st *settings) changeGlobalHotkey() {
-	st.cfg.Hotkey.Global.WindowToggle = hotkeyAccelerator(st.globalHotkey)
-	st.shell.bindHotkey(st.cfg.Hotkey.Global.WindowToggle)
+	st.cfg.Hotkey.Global.WindowToggle = hotkey.Format(st.globalHotkey)
+	st.shell.rebindHotkeys()
 	st.save()
 }
 
-// changeSidebarHotkey 换绑应用内的侧栏折叠快捷键并保存。
-func (st *settings) changeSidebarHotkey() {
-	st.cfg.Hotkey.App.SidebarToggle = hotkeyAccelerator(st.sidebarHotkey)
-	st.shell.applySidebarHotkey(st.cfg.Hotkey.App.SidebarToggle)
-	st.save()
+// changeStartAtLogin 让系统记住是否随登录启动；失败时把开关拨回原状态。
+func (st *settings) changeStartAtLogin(on bool) {
+	if err := mygo.App.SetOpenAtLogin(on); err != nil {
+		st.startAtLogin = !on
+		st.shell.log.Warn("settings: 设置开机启动", "error", err)
+		if w := st.shell.settingsWin; w != nil {
+			w.Invalidate()
+		}
+	}
+}
+
+// startAtLoginHint 在开发模式下说明开机启动只在打包版本生效。
+func startAtLoginHint() string {
+	if mygo.IsDev() {
+		return locales.SettingsStartAtLoginDev()
+	}
+	return ""
 }
 
 func (st *settings) save() {
