@@ -69,6 +69,8 @@ func (m *Module) showPanel() {
 	}
 	height := panelHeightForScale(scale, 0, false)
 	m.setPanelHeight(height)
+	m.fit = panelFit{scale: scale}
+	m.listMaxHeight = panelMaxListHeight(scale)
 	d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
 	if area := d.WorkArea; area.Width > 0 && area.Height > 0 {
 		x := area.X + (area.Width-panelWidth)/2
@@ -94,6 +96,23 @@ func (m *Module) setPanelHeight(height int) {
 	}
 	m.panelHeight = height
 	m.panel.SetSize(panelWidth, height)
+}
+
+// panelFit 是估算面板高度所需的输入；相同输入不必重新计算。
+type panelFit struct {
+	scale float32
+	rows  int
+	tabs  bool
+}
+
+// setPanelHeightFor 只在高度输入变化时重新估算并调整面板高度。
+func (m *Module) setPanelHeightFor(fit panelFit) {
+	if fit == m.fit {
+		return
+	}
+	m.fit = fit
+	m.listMaxHeight = panelMaxListHeight(fit.scale)
+	m.setPanelHeight(panelHeightForScale(fit.scale, fit.rows, fit.tabs))
 }
 
 // hidePanel 隐藏面板但不销毁窗口，下次唤起时保留窗口本身与内部状态。

@@ -30,12 +30,13 @@ const (
 	panelWidth = 680
 
 	// panelInputHeight 是搜索框的固定高度（DIP），用于估算面板高度。
-	panelInputHeight = 40
-	// panelRowHeight 是每条结果行的固定高度（DIP）。
+	panelInputHeight = 36
+	// panelRowHeight 是每条结果行的固定高度：SM 20 + XS 16 + 上下内边距 8（DIP）。
+	// 行内两行文字由 ListBox 自己排版，高度不能小于它，否则末行会被裁掉。
 	panelRowHeight = 44
 	// panelMaxRows 是列表不滚动时最多展示的行数。
 	panelMaxRows = 8
-	// panelTabsHeight 是分类分段控件的高度（30 的滑片 + 上下内边距，DIP）。
+	// panelTabsHeight 是分类分段控件的高度：30 的滑片 + 上下各 2 的内边距（DIP）。
 	panelTabsHeight = 34
 )
 
@@ -48,6 +49,10 @@ type Module struct {
 	panel *mygo.Window
 	// panelHeight 是面板当前高度（DIP），用于跳过重复 SetSize。
 	panelHeight int
+	// fit 是上一帧用于估算面板高度的输入，输入不变时不再重算。
+	fit panelFit
+	// listMaxHeight 是与 fit 对应的列表最大高度。
+	listMaxHeight float32
 	// textScale 是面板最近一帧的文字缩放，供 showPanel 估算高度。
 	textScale float32
 	// query 是面板搜索框的当前文本。

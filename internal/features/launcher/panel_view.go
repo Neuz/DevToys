@@ -26,7 +26,7 @@ func (m *Module) panelView(c *ui.Context) {
 	t := theme.Colors(c)
 	scale := theme.TextScale(c)
 	m.textScale = scale
-	ui.Column(c).Fill().Padding(theme.Space(4)).Gap(theme.Space(3)).
+	ui.Column(c).Fill().Padding(theme.Space(2.5)).Gap(theme.Space(1.5)).
 		Background(t.Background).TextColor(t.Foreground).Children(func() {
 		var input ui.Element
 		ui.Row(c).FillWidth().AlignItems(ui.Center).Gap(theme.Space(2)).Children(func() {
@@ -40,12 +40,12 @@ func (m *Module) panelView(c *ui.Context) {
 		})
 		// 默认状态（空查询）只显示搜索框：分类与结果都随查询出现。
 		if strings.TrimSpace(m.query) == "" {
-			m.setPanelHeight(panelHeightForScale(scale, 0, false))
+			m.setPanelHeightFor(panelFit{scale: scale})
 			return
 		}
 		m.renderCategories(c)
 		entries := m.visibleEntries()
-		m.setPanelHeight(panelHeightForScale(scale, len(entries), true))
+		m.setPanelHeightFor(panelFit{scale: scale, rows: len(entries), tabs: true})
 		// 当前分类没有结果时保留搜索框与分类切换，不渲染列表。
 		if len(entries) == 0 {
 			return
@@ -82,8 +82,8 @@ func (m *Module) panelView(c *ui.Context) {
 			Label:             locales.T("title"),
 			Items:             rows,
 			State:             &m.list,
-			Padding:           theme.Space(2),
-			MaxHeight:         panelMaxListHeight(scale),
+			Padding:           theme.Space(1),
+			MaxHeight:         m.listMaxHeight,
 			NoFocusOnClick:    true,
 			KeyboardHighlight: m.input.Focused(c),
 			Editor:            &m.input,
@@ -129,20 +129,21 @@ func panelHeightForScale(scale float32, rows int, tabs bool) int {
 	if scale <= 0 {
 		scale = 1
 	}
-	height := 2*theme.Space(4) + float32(panelInputHeight)*scale
+	height := 2*theme.Space(2.5) + float32(panelInputHeight)*scale
 	if tabs {
-		height += theme.Space(3) + float32(panelTabsHeight)*scale
+		height += theme.Space(1.5) + float32(panelTabsHeight)*scale
 	}
 	if rows > 0 {
-		height += theme.Space(3) + 2*theme.Space(2) +
+		height += theme.Space(1.5) + 2*theme.Space(1) +
 			float32(min(rows, panelMaxRows))*float32(panelRowHeight)*scale
 	}
 	return int(math.Ceil(float64(height)))
 }
 
-// panelMaxListHeight 是列表展示 panelMaxRows 行时的最大高度（DIP）。
+// panelMaxListHeight 是列表展示 panelMaxRows 行时的最大高度（DIP），
+// 与 panelHeightForScale 里的列表部分保持一致，避免末行被窗口裁掉。
 func panelMaxListHeight(scale float32) float32 {
-	return 2*theme.Space(2) + float32(panelMaxRows)*float32(panelRowHeight)*scale
+	return 2*theme.Space(1) + float32(panelMaxRows)*float32(panelRowHeight)*scale
 }
 
 // onTextKey 把方向键、回车与 Escape 转成面板导航。
