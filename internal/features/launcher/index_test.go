@@ -1,6 +1,8 @@
 package launcher
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -19,13 +21,14 @@ func TestEntriesFromApps(t *testing.T) {
 			ID:   "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
 			Path: `shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`,
 		},
+		{Name: "远程桌面连接", ID: "mstsc.exe", Path: `shell:AppsFolder\mstsc.exe`},
 		{Name: "Duplicate", ID: `C:\dup.exe`, Path: "p1"},
 		{Name: "Duplicate again", ID: `C:\dup.exe`, Path: "p2"},
 		{Name: "No path", ID: "nopath"},
 	}
 	entries := entriesFromApps(apps)
-	if len(entries) != 3 {
-		t.Fatalf("entries = %+v, want 3", entries)
+	if len(entries) != 4 {
+		t.Fatalf("entries = %+v, want 4", entries)
 	}
 	byTitle := make(map[string]Entry, len(entries))
 	for _, e := range entries {
@@ -53,6 +56,81 @@ func TestEntriesFromApps(t *testing.T) {
 	if !strings.Contains(calc.Pinyin, "jisuanqi") {
 		t.Errorf("calc pinyin = %q", calc.Pinyin)
 	}
+
+	remote := byTitle["远程桌面连接"]
+	if !strings.Contains(remote.Keywords, " mstsc") {
+		t.Errorf("remote keywords = %q, want bare exe name", remote.Keywords)
+	}
+	if strings.Contains(remote.Keywords, ".exe") {
+		t.Errorf("remote keywords = %q, want the extension removed", remote.Keywords)
+	}
+}
+
+func TestDedupeByTitle(t *testing.T) {
+	entries := []Entry{
+		{Title: "远程桌面连接", ID: "mstsc"},
+		{Title: "远程桌面连接", ID: "store"},
+		{Title: "Calculator", ID: "calc"},
+		{Title: "CALCULATOR", ID: "calc2"},
+		{Title: "Notepad", ID: "notepad"},
+	}
+	got := dedupeByTitle(entries)
+	if len(got) != 3 {
+		t.Fatalf("dedupeByTitle() = %+v, want 3", got)
+	}
+	for i, want := range []string{"mstsc", "calc", "notepad"} {
+		if got[i].ID != want {
+			t.Errorf("entry %d id = %q, want %q", i, got[i].ID, want)
+		}
+	}
+}
+
+func TestBuiltinProgramEntries(t *testing.T) {
+	root := os.Getenv("SystemRoot")
+	if root == "" {
+		root = `C:\Windows`
+	}
+	if _, err := os.Stat(filepath.Join(root, "System32", "mstsc.exe")); err != nil {
+		t.Skip("mstsc.exe not available")
+	}
+	entries := builtinEntries()
+	var remote Entry
+	for _, e := range entries {
+		if e.Category == categoryApp && strings.EqualFold(filepath.Base(e.Path), "mstsc.exe") {
+			remote = e
+		}
+	}
+	if remote.Path == "" {
+		t.Fatalf("builtinEntries() = %+v, want mstsc", entries)
+	}
+	if remote.Description != "mstsc.exe" {
+		t.Errorf("description = %q, want mstsc.exe", remote.Description)
+	}
+	// 输入 mstsc 必须能命中，这是补充索引的目的。
+	if got := filter(entries, "mstsc"); len(got) == 0 {
+		t.Errorf("filter(%+v, mstsc) = empty, want the remote desktop tool", entries)
+	}
+}
+
+func TestExecutableStem(t *testing.T) {
+	cases := []struct {
+		name string
+		app  mygo.InstalledApp
+		want string
+	}{
+		{"id path", mygo.InstalledApp{ID: `C:\Windows\System32\mstsc.exe`}, "mstsc"},
+		{"bare id", mygo.InstalledApp{ID: "calc.exe"}, "calc"},
+		{"path only", mygo.InstalledApp{ID: "pkg!App", Path: `shell:AppsFolder\C:\Tools\calc.exe`}, "calc"},
+		{"name only", mygo.InstalledApp{Name: "notepad.exe"}, "notepad"},
+		{"packaged", mygo.InstalledApp{ID: "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App", Name: "计算器"}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := executableStem(tc.app); got != tc.want {
+				t.Errorf("executableStem(%+v) = %q, want %q", tc.app, got, tc.want)
+			}
+		})
+	}
 }
 
 func TestEntriesFromAppsSetsCategory(t *testing.T) {
@@ -62,18 +140,31 @@ func TestEntriesFromAppsSetsCategory(t *testing.T) {
 	}
 }
 
-func TestSystemEntries(t *testing.T) {
-	entries := systemEntries()
-	if len(entries) != len(windowsSettings) {
-		t.Fatalf("len = %d, want %d", len(entries), len(windowsSettings))
+func TestBuiltinSettingsEntries(t *testing.T) {
+	want := 0
+	keys := make(map[string]struct{}, len(builtins))
+	for _, b := range builtins {
+		if _, ok := keys[b.key]; ok {
+			t.Errorf("duplicate key %q", b.key)
+		}
+		keys[b.key] = struct{}{}
+		if b.settings {
+			want++
+		}
 	}
-	seen := make(map[string]struct{}, len(entries))
-	for _, e := range entries {
+	seen := make(map[string]struct{}, want)
+	titles := make(map[string]struct{}, want)
+	got := 0
+	for _, e := range builtinEntries() {
+		if e.Category != categorySystem {
+			continue
+		}
+		got++
 		if e.Title == "" {
 			t.Errorf("empty title for %q", e.Path)
 		}
-		if e.Category != categorySystem {
-			t.Errorf("%q category = %q, want %q", e.Title, e.Category, categorySystem)
+		if e.Keywords == "" {
+			t.Errorf("%q has empty keywords", e.Title)
 		}
 		if !strings.HasPrefix(e.Path, "ms-settings:") {
 			t.Errorf("%q path = %q, want MS-Settings URI", e.Title, e.Path)
@@ -82,6 +173,13 @@ func TestSystemEntries(t *testing.T) {
 			t.Errorf("duplicate id %q", e.ID)
 		}
 		seen[e.ID] = struct{}{}
+		if _, ok := titles[e.Title]; ok {
+			t.Errorf("duplicate title %q", e.Title)
+		}
+		titles[e.Title] = struct{}{}
+	}
+	if got != want {
+		t.Errorf("settings entries = %d, want %d", got, want)
 	}
 }
 
@@ -151,14 +249,17 @@ func TestPinyinTextKeepsFullAndInitials(t *testing.T) {
 }
 
 func TestIndexOptionsNormalized(t *testing.T) {
-	if got := (indexOptions{MaxResults: 1}).normalized().MaxResults; got != minResultCount {
-		t.Errorf("low max_results = %d, want %d", got, minResultCount)
+	if got := (indexOptions{MaxResults: 3}).normalized().MaxResults; got != 3 {
+		t.Errorf("max_results = %d, want 3", got)
 	}
-	if got := (indexOptions{MaxResults: 100}).normalized().MaxResults; got != maxResultCount {
-		t.Errorf("high max_results = %d, want %d", got, maxResultCount)
+	if got := (indexOptions{MaxResults: 100}).normalized().MaxResults; got != 100 {
+		t.Errorf("large max_results = %d, want 100", got)
 	}
 	if got := (indexOptions{}).normalized().MaxResults; got != defaultResultCount {
 		t.Errorf("default max_results = %d, want %d", got, defaultResultCount)
+	}
+	if got := (indexOptions{MaxResults: -1}).normalized().MaxResults; got != defaultResultCount {
+		t.Errorf("negative max_results = %d, want %d", got, defaultResultCount)
 	}
 	if got := (indexOptions{Exclude: []string{}}).normalized().Exclude; len(got) != 0 {
 		t.Errorf("explicit empty exclude = %v, want empty", got)

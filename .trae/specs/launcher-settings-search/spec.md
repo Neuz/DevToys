@@ -252,7 +252,7 @@ func panelMaxListHeight(scale float32) float32
 
 | 行 | 控件 | 文案 key |
 | --- | --- | --- |
-| 显示结果数量 | `form.NumberField`，`Min = minResultCount`、`Max = maxResultCount`、宽度 `theme.Scale(c, 120)` | `settings_max_results`、`settings_max_results_hint` |
+| 显示结果数量 | `form.NumberField`，宽度 `theme.Scale(c, 120)`；`0` 或负数按默认值 8 处理 | `settings_max_results`、`settings_max_results_hint` |
 | 排除关键词 | `form.TagsInput`（逗号或回车分隔） | `settings_exclude`、`settings_exclude_hint` |
 
 两行都插在【触发快捷键】之后、【触发】之前，`OnChange` 均为 `m.changeOptions`。
@@ -260,7 +260,7 @@ func panelMaxListHeight(scale float32) float32
 ### 11.2 状态与保存（`module.go`）
 
 - 新增字段：`maxResults form.NumberFieldState`、`excludeTags []string`。
-- `Init` 在 `m.trigger` 之后初始化：`m.maxResults.Value = float64(opts.MaxResults)`、`m.excludeTags = append([]string(nil), opts.Exclude...)`（必须显式初始化，否则 `NumberField` 会按 `Min` 夹到 5）。
+- `Init` 在 `m.trigger` 之后初始化：`m.maxResults.Value = float64(opts.MaxResults)`、`m.excludeTags = append([]string(nil), opts.Exclude...)`。
 - 新增 `(*Module) changeOptions()`：
   - 读取 `current := m.options()`，用当前控件值构造 `indexOptions{MaxResults: int(m.maxResults.Value), Exclude: m.excludeTags}.normalized()`；
   - `json.Marshal` 后写入 `m.host.Feature().Options`，`SaveConfig` 失败则回滚 `Options` 并记 error；
@@ -273,7 +273,7 @@ func panelMaxListHeight(scale float32) float32
 
 ### 11.4 验证
 
-- 设置页出现两行；NumberField 初值为当前配置（默认 8），范围 5–30；TagsInput 初值为默认排除词。
+- 设置页出现两行；NumberField 初值为当前配置（默认 8），不设上下限；TagsInput 初值为默认排除词。
 - 修改数量后立即影响面板结果条数；修改排除词后索引在后台重建，命中词的应用从结果消失；`config.json` 的 `features.launcher.options` 同步更新。
 - 构建、vet、测试、i18n 与 `gofmt` 校验通过。
 
@@ -285,9 +285,10 @@ func panelMaxListHeight(scale float32) float32
 
 - `Entry` 新增 `Category string`（`json:"category"`），取值为 `categoryApp = "app"` 或 `categorySystem = "system"`。
 - `entriesFromApps` 全部标记为 `categoryApp`；旧缓存没有该字段时按应用处理（`categoryOf`）。
-- 新增 `windowsSettings` 表（15 项）：每项 `{本地化 key, ms-settings URI, 中英文补充关键词}`，覆盖设置首页、显示、声音、通知、电源、存储、应用、网络、蓝牙、个性化、隐私、更新、时间、鼠标、键盘。
-- 新增 `systemEntries() []Entry`：标题用 `locales.T(key)`，`ID` 与 `Path` 都是 URI，`Keywords` 同时含中英文，`Pinyin` 走 `pinyinText`。
-- `buildIndex` 在 `runtime.GOOS == "windows"` 时把系统条目并入应用条目，再统一按排除词过滤。
+- 新增 `builtins` 表（31 项设置 + `mstsc`）：每项 `{本地化 key, target, 中英文补充关键词, settings}`，设置项的 `target` 是 `ms-settings:` URI，程序项的 `target` 是 System32 下的 exe 文件名。
+- 设置项覆盖显示、声音、通知、电源、存储、应用、网络、蓝牙、个性化、隐私、更新、时间、鼠标、键盘、关于、账户、登录选项、默认应用、启动应用、可选功能、任务栏、多任务、剪贴板、语言和区域、字体、恢复、激活、疑难解答、开发者选项、辅助功能、打印机和扫描仪；设置首页与 Windows 安全中心已由开始菜单索引，不再重复收录。
+- 新增 `builtinEntries() []Entry`：设置项 `ID` 与 `Path` 都是 URI、分类为系统；程序项把 `target` 解析为完整 exe 路径（不存在则跳过），分类为应用，`Description` 为 exe 文件名；`Pinyin` 统一走 `pinyinText`。
+- `buildIndex` 在 `runtime.GOOS == "windows"` 时把内置条目排到应用之前并合并，再用 `dedupeByTitle` 按标题去重（内置优先），最后统一按排除词过滤；因此 `mstsc` 会取代同名的 Store「远程桌面连接」应用。
 
 ### 12.2 过滤（`search.go`）
 
@@ -313,4 +314,4 @@ func panelMaxListHeight(scale float32) float32
 - 输入任意关键词后出现三档分类；切换【系统】只剩 Windows 设置项，切换【应用】只剩应用。
 - 选择系统条目后打开对应 `ms-settings:` 页面，并计入使用记录。
 - 旧索引缓存（无 `category`）在重建前仍出现在【应用】里，重建后系统项出现。
-- 新增单测：`filterCategory`、`systemEntries`、`entriesFromApps` 的分类标记；构建、vet、测试与 `gofmt` 通过。
+- 新增单测：`filterCategory`、`builtinEntries`、`entriesFromApps` 的分类标记；构建、vet、测试与 `gofmt` 通过。

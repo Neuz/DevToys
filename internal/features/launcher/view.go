@@ -52,11 +52,8 @@ func (m *Module) View(c *ui.Context) {
 					Title:    locales.T("settings_max_results"),
 					Subtitle: locales.T("settings_max_results_hint"),
 					Trailing: func() {
-						lo, hi := float64(minResultCount), float64(maxResultCount)
 						form.NumberField(c, &m.maxResults, form.NumberFieldOptions{
 							AriaLabel: locales.T("settings_max_results"),
-							Min:       &lo,
-							Max:       &hi,
 							OnChange:  m.changeOptions,
 						}).Width(theme.Scale(c, 120))
 					},
