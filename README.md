@@ -8,6 +8,7 @@
 - [架构设计](docs/architecture.md)：模块划分、数据流、关键接口
 - [开发进度](docs/progress.md)：已完成、进行中、待办、已知问题
 - [启动器](docs/features/launcher.md)：全局快速启动功能说明
+- [网络代理](docs/architecture.md#网络代理)：外壳「网络」分类与全局代理
 
 ## 当前功能
 

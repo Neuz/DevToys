@@ -90,24 +90,10 @@ func (msgs Messages) SettingsHotkeyUnset() string {
 	return Catalog.Format(msgs.locale, "settings_hotkey_unset", nil)
 }
 
-// SettingsHotkeyGlobal says "全局快捷键"
-// in the language the app shows.
-//
-// 应用在后台时也生效的快捷键分组。
-func SettingsHotkeyGlobal() string { return In(i18n.Locale()).SettingsHotkeyGlobal() }
-
-// SettingsHotkeyGlobal says "全局快捷键"
-// in the language of msgs.
-//
-// 应用在后台时也生效的快捷键分组。
-func (msgs Messages) SettingsHotkeyGlobal() string {
-	return Catalog.Format(msgs.locale, "settings_hotkey_global", nil)
-}
-
 // SettingsHotkeyGlobalWindowToggle says "显示或隐藏窗口"
 // in the language the app shows.
 //
-// 全局快捷键中用于显示或隐藏主窗口的一行。
+// 快捷键页中用于显示或隐藏主窗口的一行。
 func SettingsHotkeyGlobalWindowToggle() string {
 	return In(i18n.Locale()).SettingsHotkeyGlobalWindowToggle()
 }
@@ -115,7 +101,7 @@ func SettingsHotkeyGlobalWindowToggle() string {
 // SettingsHotkeyGlobalWindowToggle says "显示或隐藏窗口"
 // in the language of msgs.
 //
-// 全局快捷键中用于显示或隐藏主窗口的一行。
+// 快捷键页中用于显示或隐藏主窗口的一行。
 func (msgs Messages) SettingsHotkeyGlobalWindowToggle() string {
 	return Catalog.Format(msgs.locale, "settings_hotkey_global_window_toggle", nil)
 }
@@ -258,6 +244,334 @@ func LanguageChinese() string { return In(i18n.Locale()).LanguageChinese() }
 // 简体中文的语言选项。
 func (msgs Messages) LanguageChinese() string {
 	return Catalog.Format(msgs.locale, "language_chinese", nil)
+}
+
+// SettingsNetwork says "网络"
+// in the language the app shows.
+//
+// 设置窗口中网络代理分类的选项卡名称。
+func SettingsNetwork() string { return In(i18n.Locale()).SettingsNetwork() }
+
+// SettingsNetwork says "网络"
+// in the language of msgs.
+//
+// 设置窗口中网络代理分类的选项卡名称。
+func (msgs Messages) SettingsNetwork() string {
+	return Catalog.Format(msgs.locale, "settings_network", nil)
+}
+
+// SettingsProxyMode says "网络代理"
+// in the language the app shows.
+//
+// 网络页里代理模式单选项的标题。
+func SettingsProxyMode() string { return In(i18n.Locale()).SettingsProxyMode() }
+
+// SettingsProxyMode says "网络代理"
+// in the language of msgs.
+//
+// 网络页里代理模式单选项的标题。
+func (msgs Messages) SettingsProxyMode() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_mode", nil)
+}
+
+// SettingsProxyDirect says "不使用代理"
+// in the language the app shows.
+//
+// 所有请求都直接连接、不经过代理的选项。
+func SettingsProxyDirect() string { return In(i18n.Locale()).SettingsProxyDirect() }
+
+// SettingsProxyDirect says "不使用代理"
+// in the language of msgs.
+//
+// 所有请求都直接连接、不经过代理的选项。
+func (msgs Messages) SettingsProxyDirect() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_direct", nil)
+}
+
+// SettingsProxySystem says "系统"
+// in the language the app shows.
+//
+// 跟随操作系统代理设置的选项。
+func SettingsProxySystem() string { return In(i18n.Locale()).SettingsProxySystem() }
+
+// SettingsProxySystem says "系统"
+// in the language of msgs.
+//
+// 跟随操作系统代理设置的选项。
+func (msgs Messages) SettingsProxySystem() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_system", nil)
+}
+
+// SettingsProxyManual says "手动"
+// in the language the app shows.
+//
+// 由用户填写代理地址与例外的选项。
+func SettingsProxyManual() string { return In(i18n.Locale()).SettingsProxyManual() }
+
+// SettingsProxyManual says "手动"
+// in the language of msgs.
+//
+// 由用户填写代理地址与例外的选项。
+func (msgs Messages) SettingsProxyManual() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_manual", nil)
+}
+
+// SettingsProxySystemUnavailable says "仅 Windows 可读取系统代理"
+// in the language the app shows.
+//
+// 非 Windows 平台上无法读取系统代理时的说明。
+func SettingsProxySystemUnavailable() string {
+	return In(i18n.Locale()).SettingsProxySystemUnavailable()
+}
+
+// SettingsProxySystemUnavailable says "仅 Windows 可读取系统代理"
+// in the language of msgs.
+//
+// 非 Windows 平台上无法读取系统代理时的说明。
+func (msgs Messages) SettingsProxySystemUnavailable() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_system_unavailable", nil)
+}
+
+// SettingsProxySystemAuto says "自动配置：%s"
+// in the language the app shows.
+//
+// 系统使用 PAC 脚本时的地址说明，参数是脚本地址。
+func SettingsProxySystemAuto() string { return In(i18n.Locale()).SettingsProxySystemAuto() }
+
+// SettingsProxySystemAuto says "自动配置：%s"
+// in the language of msgs.
+//
+// 系统使用 PAC 脚本时的地址说明，参数是脚本地址。
+func (msgs Messages) SettingsProxySystemAuto() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_system_auto", nil)
+}
+
+// SettingsProxySystemAutoDetect says "自动检测（WPAD）"
+// in the language the app shows.
+//
+// 系统开启自动检测代理时的说明。
+func SettingsProxySystemAutoDetect() string { return In(i18n.Locale()).SettingsProxySystemAutoDetect() }
+
+// SettingsProxySystemAutoDetect says "自动检测（WPAD）"
+// in the language of msgs.
+//
+// 系统开启自动检测代理时的说明。
+func (msgs Messages) SettingsProxySystemAutoDetect() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_system_auto_detect", nil)
+}
+
+// SettingsProxySystemNone says "未配置（直连）"
+// in the language the app shows.
+//
+// 系统没有配置代理时的说明。
+func SettingsProxySystemNone() string { return In(i18n.Locale()).SettingsProxySystemNone() }
+
+// SettingsProxySystemNone says "未配置（直连）"
+// in the language of msgs.
+//
+// 系统没有配置代理时的说明。
+func (msgs Messages) SettingsProxySystemNone() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_system_none", nil)
+}
+
+// SettingsProxySystemNoExceptions says "无"
+// in the language the app shows.
+//
+// 系统绕过列表为空时的说明。
+func SettingsProxySystemNoExceptions() string {
+	return In(i18n.Locale()).SettingsProxySystemNoExceptions()
+}
+
+// SettingsProxySystemNoExceptions says "无"
+// in the language of msgs.
+//
+// 系统绕过列表为空时的说明。
+func (msgs Messages) SettingsProxySystemNoExceptions() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_system_no_exceptions", nil)
+}
+
+// SettingsProxyUrl says "代理地址"
+// in the language the app shows.
+//
+// 代理地址一行；手动模式为输入框，系统模式为只读文本。
+func SettingsProxyUrl() string { return In(i18n.Locale()).SettingsProxyUrl() }
+
+// SettingsProxyUrl says "代理地址"
+// in the language of msgs.
+//
+// 代理地址一行；手动模式为输入框，系统模式为只读文本。
+func (msgs Messages) SettingsProxyUrl() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_url", nil)
+}
+
+// SettingsProxyUrlPlaceholder says "http://127.0.0.1:7890 或 socks5://127.0.0.1:1080"
+// in the language the app shows.
+//
+// 代理地址输入框的占位示例。
+func SettingsProxyUrlPlaceholder() string { return In(i18n.Locale()).SettingsProxyUrlPlaceholder() }
+
+// SettingsProxyUrlPlaceholder says "http://127.0.0.1:7890 或 socks5://127.0.0.1:1080"
+// in the language of msgs.
+//
+// 代理地址输入框的占位示例。
+func (msgs Messages) SettingsProxyUrlPlaceholder() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_url_placeholder", nil)
+}
+
+// SettingsProxyExceptions says "代理例外"
+// in the language the app shows.
+//
+// 代理例外一行；手动模式为输入框，系统模式为只读文本。
+func SettingsProxyExceptions() string { return In(i18n.Locale()).SettingsProxyExceptions() }
+
+// SettingsProxyExceptions says "代理例外"
+// in the language of msgs.
+//
+// 代理例外一行；手动模式为输入框，系统模式为只读文本。
+func (msgs Messages) SettingsProxyExceptions() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_exceptions", nil)
+}
+
+// SettingsProxyExceptionsPlaceholder says "localhost, *.corp.example.com"
+// in the language the app shows.
+//
+// 代理例外输入框的占位示例。
+func SettingsProxyExceptionsPlaceholder() string {
+	return In(i18n.Locale()).SettingsProxyExceptionsPlaceholder()
+}
+
+// SettingsProxyExceptionsPlaceholder says "localhost, *.corp.example.com"
+// in the language of msgs.
+//
+// 代理例外输入框的占位示例。
+func (msgs Messages) SettingsProxyExceptionsPlaceholder() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_exceptions_placeholder", nil)
+}
+
+// SettingsProxyActions says "连接与保存"
+// in the language the app shows.
+//
+// 放置测试并保存按钮的一行。
+func SettingsProxyActions() string { return In(i18n.Locale()).SettingsProxyActions() }
+
+// SettingsProxyActions says "连接与保存"
+// in the language of msgs.
+//
+// 放置测试并保存按钮的一行。
+func (msgs Messages) SettingsProxyActions() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_actions", nil)
+}
+
+// SettingsProxyTesting says "正在检测代理地址..."
+// in the language the app shows.
+//
+// 测试连接进行中的状态提示。
+func SettingsProxyTesting() string { return In(i18n.Locale()).SettingsProxyTesting() }
+
+// SettingsProxyTesting says "正在检测代理地址..."
+// in the language of msgs.
+//
+// 测试连接进行中的状态提示。
+func (msgs Messages) SettingsProxyTesting() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_testing", nil)
+}
+
+// SettingsProxySave says "测试并保存"
+// in the language the app shows.
+//
+// 先检测代理地址、通过后再保存的按钮。
+func SettingsProxySave() string { return In(i18n.Locale()).SettingsProxySave() }
+
+// SettingsProxySave says "测试并保存"
+// in the language of msgs.
+//
+// 先检测代理地址、通过后再保存的按钮。
+func (msgs Messages) SettingsProxySave() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_save", nil)
+}
+
+// SettingsProxySavedReachable says "地址可达（%s），已保存并生效"
+// in the language the app shows.
+//
+// 测试通过并保存成功后的提示，参数是耗时。
+func SettingsProxySavedReachable() string { return In(i18n.Locale()).SettingsProxySavedReachable() }
+
+// SettingsProxySavedReachable says "地址可达（%s），已保存并生效"
+// in the language of msgs.
+//
+// 测试通过并保存成功后的提示，参数是耗时。
+func (msgs Messages) SettingsProxySavedReachable() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_saved_reachable", nil)
+}
+
+// SettingsProxyFallback says "未配置代理，使用系统代理"
+// in the language the app shows.
+//
+// 测试失败后回退为系统代理时的提示。
+func SettingsProxyFallback() string { return In(i18n.Locale()).SettingsProxyFallback() }
+
+// SettingsProxyFallback says "未配置代理，使用系统代理"
+// in the language of msgs.
+//
+// 测试失败后回退为系统代理时的提示。
+func (msgs Messages) SettingsProxyFallback() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_fallback", nil)
+}
+
+// SettingsProxyInvalid says "代理配置无效：%s"
+// in the language the app shows.
+//
+// 代理地址或例外不合法时的提示，参数是错误信息。
+func SettingsProxyInvalid() string { return In(i18n.Locale()).SettingsProxyInvalid() }
+
+// SettingsProxyInvalid says "代理配置无效：%s"
+// in the language of msgs.
+//
+// 代理地址或例外不合法时的提示，参数是错误信息。
+func (msgs Messages) SettingsProxyInvalid() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_invalid", nil)
+}
+
+// SettingsProxyCurrentDirect says "当前生效：不使用代理"
+// in the language the app shows.
+//
+// 代理模式行下说明当前直连的提示。
+func SettingsProxyCurrentDirect() string { return In(i18n.Locale()).SettingsProxyCurrentDirect() }
+
+// SettingsProxyCurrentDirect says "当前生效：不使用代理"
+// in the language of msgs.
+//
+// 代理模式行下说明当前直连的提示。
+func (msgs Messages) SettingsProxyCurrentDirect() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_current_direct", nil)
+}
+
+// SettingsProxyCurrentSystem says "当前生效：系统代理"
+// in the language the app shows.
+//
+// 代理模式行下说明当前跟随系统代理的提示。
+func SettingsProxyCurrentSystem() string { return In(i18n.Locale()).SettingsProxyCurrentSystem() }
+
+// SettingsProxyCurrentSystem says "当前生效：系统代理"
+// in the language of msgs.
+//
+// 代理模式行下说明当前跟随系统代理的提示。
+func (msgs Messages) SettingsProxyCurrentSystem() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_current_system", nil)
+}
+
+// SettingsProxyCurrentManual says "当前生效：%s"
+// in the language the app shows.
+//
+// 代理模式行下说明当前手动代理地址的提示，参数是隐藏密码后的地址。
+func SettingsProxyCurrentManual() string { return In(i18n.Locale()).SettingsProxyCurrentManual() }
+
+// SettingsProxyCurrentManual says "当前生效：%s"
+// in the language of msgs.
+//
+// 代理模式行下说明当前手动代理地址的提示，参数是隐藏密码后的地址。
+func (msgs Messages) SettingsProxyCurrentManual() string {
+	return Catalog.Format(msgs.locale, "settings_proxy_current_manual", nil)
 }
 
 // SettingsCheckForUpdates says "检查更新..."

@@ -16,13 +16,9 @@
   "@settings_hotkey_unset": {
     "description": "快捷键录制器未设置任何组合时的占位文字。"
   },
-  "settings_hotkey_global": "全局快捷键",
-  "@settings_hotkey_global": {
-    "description": "应用在后台时也生效的快捷键分组。"
-  },
   "settings_hotkey_global_window_toggle": "显示或隐藏窗口",
   "@settings_hotkey_global_window_toggle": {
-    "description": "全局快捷键中用于显示或隐藏主窗口的一行。"
+    "description": "快捷键页中用于显示或隐藏主窗口的一行。"
   },
   "settings_start_at_login": "开机启动",
   "@settings_start_at_login": {
@@ -63,6 +59,98 @@
   "language_chinese": "简体中文",
   "@language_chinese": {
     "description": "简体中文的语言选项。"
+  },
+  "settings_network": "网络",
+  "@settings_network": {
+    "description": "设置窗口中网络代理分类的选项卡名称。"
+  },
+  "settings_proxy_mode": "网络代理",
+  "@settings_proxy_mode": {
+    "description": "网络页里代理模式单选项的标题。"
+  },
+  "settings_proxy_direct": "不使用代理",
+  "@settings_proxy_direct": {
+    "description": "所有请求都直接连接、不经过代理的选项。"
+  },
+  "settings_proxy_system": "系统",
+  "@settings_proxy_system": {
+    "description": "跟随操作系统代理设置的选项。"
+  },
+  "settings_proxy_manual": "手动",
+  "@settings_proxy_manual": {
+    "description": "由用户填写代理地址与例外的选项。"
+  },
+  "settings_proxy_system_unavailable": "仅 Windows 可读取系统代理",
+  "@settings_proxy_system_unavailable": {
+    "description": "非 Windows 平台上无法读取系统代理时的说明。"
+  },
+  "settings_proxy_system_auto": "自动配置：%s",
+  "@settings_proxy_system_auto": {
+    "description": "系统使用 PAC 脚本时的地址说明，参数是脚本地址。"
+  },
+  "settings_proxy_system_auto_detect": "自动检测（WPAD）",
+  "@settings_proxy_system_auto_detect": {
+    "description": "系统开启自动检测代理时的说明。"
+  },
+  "settings_proxy_system_none": "未配置（直连）",
+  "@settings_proxy_system_none": {
+    "description": "系统没有配置代理时的说明。"
+  },
+  "settings_proxy_system_no_exceptions": "无",
+  "@settings_proxy_system_no_exceptions": {
+    "description": "系统绕过列表为空时的说明。"
+  },
+  "settings_proxy_url": "代理地址",
+  "@settings_proxy_url": {
+    "description": "代理地址一行；手动模式为输入框，系统模式为只读文本。"
+  },
+  "settings_proxy_url_placeholder": "http://127.0.0.1:7890 或 socks5://127.0.0.1:1080",
+  "@settings_proxy_url_placeholder": {
+    "description": "代理地址输入框的占位示例。"
+  },
+  "settings_proxy_exceptions": "代理例外",
+  "@settings_proxy_exceptions": {
+    "description": "代理例外一行；手动模式为输入框，系统模式为只读文本。"
+  },
+  "settings_proxy_exceptions_placeholder": "localhost, *.corp.example.com",
+  "@settings_proxy_exceptions_placeholder": {
+    "description": "代理例外输入框的占位示例。"
+  },
+  "settings_proxy_actions": "连接与保存",
+  "@settings_proxy_actions": {
+    "description": "放置测试并保存按钮的一行。"
+  },
+  "settings_proxy_testing": "正在检测代理地址...",
+  "@settings_proxy_testing": {
+    "description": "测试连接进行中的状态提示。"
+  },
+  "settings_proxy_save": "测试并保存",
+  "@settings_proxy_save": {
+    "description": "先检测代理地址、通过后再保存的按钮。"
+  },
+  "settings_proxy_saved_reachable": "地址可达（%s），已保存并生效",
+  "@settings_proxy_saved_reachable": {
+    "description": "测试通过并保存成功后的提示，参数是耗时。"
+  },
+  "settings_proxy_fallback": "未配置代理，使用系统代理",
+  "@settings_proxy_fallback": {
+    "description": "测试失败后回退为系统代理时的提示。"
+  },
+  "settings_proxy_invalid": "代理配置无效：%s",
+  "@settings_proxy_invalid": {
+    "description": "代理地址或例外不合法时的提示，参数是错误信息。"
+  },
+  "settings_proxy_current_direct": "当前生效：不使用代理",
+  "@settings_proxy_current_direct": {
+    "description": "代理模式行下说明当前直连的提示。"
+  },
+  "settings_proxy_current_system": "当前生效：系统代理",
+  "@settings_proxy_current_system": {
+    "description": "代理模式行下说明当前跟随系统代理的提示。"
+  },
+  "settings_proxy_current_manual": "当前生效：%s",
+  "@settings_proxy_current_manual": {
+    "description": "代理模式行下说明当前手动代理地址的提示，参数是隐藏密码后的地址。"
   },
   "settings_check_for_updates": "检查更新...",
   "@settings_check_for_updates": {

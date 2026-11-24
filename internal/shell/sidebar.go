@@ -12,7 +12,7 @@ import (
 
 // 侧栏宽度：展开时的宽度与折叠后的图标轨道宽度。
 const (
-	sidebarWidth          float32 = 180
+	sidebarWidth          float32 = 160
 	sidebarCollapsedWidth float32 = 48
 )
 

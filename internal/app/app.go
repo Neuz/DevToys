@@ -9,6 +9,7 @@ import (
 	"github.com/Neuz/DevToys/internal/features/launcher"
 	"github.com/Neuz/DevToys/internal/features/welcome"
 	"github.com/Neuz/DevToys/internal/logging"
+	"github.com/Neuz/DevToys/internal/network"
 	"github.com/Neuz/DevToys/internal/shell"
 	"github.com/Neuz/DevToys/resources"
 	"github.com/egoist/mygo"
@@ -32,6 +33,12 @@ func Run() error {
 	logger, closeLog := logging.New(cfg)
 	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) { _ = closeLog() })
 	slog.SetDefault(logger)
+
+	// 代理必须在任何网络请求之前安装；配置无效时回退系统代理。
+	if err := network.Init(cfg.Network.Proxy); err != nil {
+		logger.Warn("network: 代理配置无效，回退到系统代理", "error", err)
+		_ = network.Init(config.ProxyConfig{Mode: config.ProxySystem})
+	}
 
 	icon, err := resources.AppIconPNG()
 	if err != nil {

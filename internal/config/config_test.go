@@ -15,10 +15,13 @@ func TestDefault(t *testing.T) {
 	if c.Theme != ThemeSystem || c.Locale != LocaleSystem {
 		t.Fatalf("Default() = %+v", c)
 	}
+	if c.Network.Proxy.Mode != ProxySystem {
+		t.Fatalf("默认代理模式 = %q, want %q", c.Network.Proxy.Mode, ProxySystem)
+	}
 }
 
 func TestNormalize(t *testing.T) {
-	c := Config{Theme: "nope", Locale: "fr"}
+	c := Config{Theme: "nope", Locale: "fr", Network: NetworkConfig{Proxy: ProxyConfig{Mode: "nope"}}}
 	got := c.Normalize()
 	if got.Theme != ThemeSystem {
 		t.Fatalf("Theme = %q, want %q", got.Theme, ThemeSystem)
@@ -26,14 +29,20 @@ func TestNormalize(t *testing.T) {
 	if got.Locale != LocaleSystem {
 		t.Fatalf("Locale = %q, want %q", got.Locale, LocaleSystem)
 	}
+	if got.Network.Proxy.Mode != ProxySystem {
+		t.Fatalf("代理模式 = %q, want %q", got.Network.Proxy.Mode, ProxySystem)
+	}
 
-	c = Config{Theme: ThemeDark, Locale: LocaleChinese}
+	c = Config{Theme: ThemeDark, Locale: LocaleChinese, Network: NetworkConfig{Proxy: ProxyConfig{Mode: ProxyManual}}}
 	got = c.Normalize()
 	if got.Theme != ThemeDark {
 		t.Fatalf("Theme = %q, want %q", got.Theme, ThemeDark)
 	}
 	if got.Locale != LocaleChinese {
 		t.Fatalf("Locale = %q, want %q", got.Locale, LocaleChinese)
+	}
+	if got.Network.Proxy.Mode != ProxyManual {
+		t.Fatalf("代理模式 = %q, want %q", got.Network.Proxy.Mode, ProxyManual)
 	}
 }
 
@@ -78,6 +87,11 @@ func TestSaveLoad(t *testing.T) {
 	want := Default()
 	want.Theme = ThemeDark
 	want.Locale = LocaleChinese
+	want.Network.Proxy = ProxyConfig{
+		Mode:       ProxyManual,
+		URL:        "socks5://127.0.0.1:1080",
+		Exceptions: []string{"localhost", "*.corp.example.com"},
+	}
 	if err := want.SaveTo(dir); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
