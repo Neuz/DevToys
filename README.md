@@ -8,6 +8,7 @@
 - [架构设计](docs/architecture.md)：模块划分、数据流、关键接口
 - [开发进度](docs/progress.md)：已完成、进行中、待办、已知问题
 - [启动器](docs/features/launcher.md)：全局快速启动功能说明
+- [划词翻译](docs/features/translate.md)：取词、浮窗与翻译渠道的方案设计（未实现）
 - [网络代理](docs/architecture.md#网络代理)：外壳「网络」分类与全局代理
 
 ## 当前功能
@@ -42,7 +43,7 @@ cmd/devtoys/        入口：单实例锁 + app.Run
 internal/app/       装配：配置、日志、模块、外壳、托盘
 internal/shell/     外壳：窗口、侧栏、标题栏、设置窗口、托盘、快捷键注册
 internal/contract/  外壳 ↔ 功能的唯一契约
-internal/features/  功能页：welcome（示例）、launcher
+internal/features/  功能页：welcome（示例）、launcher、qrcode
 internal/task/      后台任务，结果回到主线程
 internal/config/    config.json 读写与规范化
 internal/logging/   slog 日志器

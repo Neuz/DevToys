@@ -122,6 +122,16 @@ DevToys/
 
 启动器在 `Init` 中先同步读取 bbolt 缓存，随后用 `task.Go` 在后台重建索引，构建完成时把新索引写回缓存；结果在下一帧（设置页或面板）通过 `applyIndexResult` 采用。搜索与排序在主线程完成，数据规模是开始菜单应用量级。细节见 [启动器](features/launcher.md)。
 
+### 划词翻译
+
+- `features/translate` 只实现 `Module`、`Toggleable`、`GlobalHotkeyer`、`Closer`，不需要扩展契约；单快捷键由外壳统一注册，配置在 `features.translate.hotkeys`。
+- 取词代码也放在该功能包内（`selection.go` / `selection_windows.go` / `selection_other.go`）：Windows 用 UI Automation 的 `TextPattern` 读取前台窗口选区，COM 调用在锁定线程的 goroutine 中执行并设超时；非 Windows 返回「不支持」。
+- 浮窗复用启动器的原生 Panel 模式与视觉风格：首次按需创建、隐藏不销毁、失焦隐藏、可固定、按鼠标位置定位并夹紧工作区；顶部工具行可拖动，结果区固定高度并在内部滚动。
+- 翻译服务实现统一的 `Provider` 接口，按启用的服务并行调用；每次请求带 `generation` 与 `context`，新请求取消旧请求，过期结果丢弃。HTTP 请求必须使用 `network.Client()`。
+- 设置页只管理服务开关、微软凭证、目标语言与快捷键；全部保存在功能节点的 `options` / `hotkeys`，不新增配置文件，也不新增第三方依赖。
+
+设计、交互、取词细节与验收矩阵见 [划词翻译](features/translate.md)。
+
 ## 新增一个工具页
 
 1. 在 `internal/features/` 下建包，例如 `ping`：
