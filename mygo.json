@@ -1,7 +1,7 @@
 {
   "name": "DevToys",
   "identifier": "dev.neuz.devtoys",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "./cmd/devtoys",
   "out": "build",
   "i18n": {
