@@ -1,223 +1,64 @@
 # DevToys
 
-用 Go 写的桌面开发工具箱骨架：原生窗口（[mygo](https://github.com/egoist/mygo)）+ 组件库（[mygoui](https://github.com/Cyenoch/mygoui)），左侧 Sidebar 导航，自绘标题栏，常驻托盘，主题与界面语言都可在运行时切换。
+用 Go 写的桌面开发工具箱骨架：原生窗口（[mygo](https://github.com/egoist/mygo)）+ 组件库（[mygoui](https://github.com/Cyenoch/mygoui)）。左侧 Sidebar 导航、自绘标题栏、常驻托盘，主题与界面语言都可在运行时切换。
 
-这不是一个成品工具集，而是一套"功能会持续增加"的工程骨架：新增一个工具页只需要新建一个目录并在装配处注册，外壳不用改。
+## 文档
 
-## 设计目标
+- [需求与范围](docs/requirements.md)：功能清单、优先级、明确的非目标
+- [架构设计](docs/architecture.md)：模块划分、数据流、关键接口
+- [开发进度](docs/progress.md)：已完成、进行中、待办、已知问题
+- [启动器](docs/features/launcher.md)：全局快速启动功能说明
 
-- **外壳稳定，功能可插拔**：`shell` 负责窗口、导航、标题栏、设置窗口、托盘；`app` 负责把外观与语言作用到运行时；`features/*` 只画自己的页面。
-- **单向依赖**：`features` 不 import `shell`，`shell` 不 import `features`，两边只认 `contract`；装配在 `app` 完成。
-- **界面状态只有一个来源**：当前页与侧栏折叠状态归外壳持有，侧栏宽度是 `sidebar.go` 里的常量；主题、语言与全局快捷键以 `config` 为准，由设置窗口直接读写，外壳负责应用，功能只读。
-- **并发结果统一回主线程**：所有 UI 状态只在主线程读写，后台 goroutine 通过 `task.Runner` 的结果回到帧里。
+## 当前功能
 
-## 分层
+- **外壳**：自绘标题栏、可折叠侧栏、独立设置窗口、托盘、全局快捷键、检查更新。
+- **外观与语言**：`system` / `light` / `dark`，`system` / `en` / `zh-Hans`，切换即时生效并写入配置。
+- **启动器**：默认 `Alt+F` 唤起搜索面板，索引开始菜单应用与 Windows 系统设置，支持拼音与使用频率排序。
+- **可扩展**：每个功能拥有独立的配置节点、文案目录与后台任务 runner。
 
-```
-cmd/devtoys           入口：单实例锁，调用 app.Run
-   │
- app                  装配层：配置、日志、模块列表、外壳、托盘
-   │
- shell                窗口外壳：页面结构 / Sidebar / 标题栏 / 设置窗口 / 托盘 / 生命周期
-   │
- contract             外壳 ↔ 功能的唯一契约（接口）
-   │
- features/*           功能页：welcome · launcher
-   │
- task · config · logging · fsx   基础设施
-```
+## 快速开始
 
-依赖方向只能自上而下。`app` 是唯一同时认识 `shell` 和 `features` 的地方。
-
-## 目录
-
-```
-DevToys/
-├── cmd/devtoys/main.go        入口：RequestSingleInstanceLock + app.Run
-├── internal/
-│   ├── app/app.go             装配：读配置、建日志、注册模块与托盘，进入 mygo 事件循环
-│   ├── shell/
-│   │   ├── shell.go           组装：窗口、页面结构、模块切换、生命周期、host
-│   │   ├── sidebar.go         侧栏：导航条目、折叠状态、底部插槽、拖动区域
-│   │   ├── titlebar.go        自绘标题栏：图标 + 标题 + 副标题，右侧插槽
-│   │   ├── settings.go        设置窗口：独立弹出窗口，通用（外观 + 语言）与快捷键两个选项卡
-│   │   ├── hotkey.go          快捷键：accelerator 转换、全局注册、应用内响应与显示/隐藏主窗口
-│   │   └── tray.go            托盘图标：右键菜单（显示/隐藏、检查更新、退出）
-│   ├── contract/contract.go   Module / Live / Toggleable / GlobalHotkeyer / Closer / Host
-│   ├── features/
-│   │   ├── welcome/           欢迎页（示例模块，带侧栏图标）
-│   │   │   ├── module.go      模块声明：ID、分组、标题、图标、状态、Init
-│   │   │   ├── view.go        页面内容（只渲染）
-│   │   │   ├── actions.go     界面触发的动作（起后台任务等）
-│   │   │   └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
-│   │   └── launcher/          全局启动器：快捷键唤起浮层，搜索并启动已安装应用
-│   │       ├── module.go      模块契约、触发快捷键与图标缓存
-│   │       ├── index.go       列出已安装应用与内置入口、去重、生成关键词、后台重建索引
-│   │       ├── store.go       bbolt 持久化：索引条目与使用记录
-│   │       ├── search.go      多词/拼音过滤、按使用记录排序
-│   │       ├── panel.go       浮层面板的创建、定位、显示与隐藏
-│   │       ├── panel_view.go  面板渲染：搜索框、分类、结果列表与键盘导航
-│   │       ├── view.go        设置页渲染
-│   │       └── locales/       该模块自己的文案
-│   ├── task/task.go           后台任务 runner，结果经 post 回到主线程
-│   ├── config/                config.json 的读写与规范化
-│   ├── logging/               slog 日志器（文本输出，dev 或 debug 时同时写 stderr）
-│   └── fsx/atomic.go          原子写文件（临时文件 + fsync + rename）
-├── locales/                   外壳与公共文案：en.json、zh-Hans.json、catalog_gen.go（生成）
-├── mygo.json                  mygo 应用清单：入口、i18n 目录、更新源
-└── go.mod                     Go 1.27，mygo / mygoui / mygoicons
-```
-
-## 启动流程
-
-1. `cmd/devtoys` 取单实例锁，调用 `app.Run()`。
-2. `app` 从 `os.UserConfigDir()/DevToys` 读 `config.json`：文件缺失时用默认值；JSON 损坏时把原文件备份为 `config.json.bad` 并回退默认值，保证应用仍能启动。
-3. 初始化 `slog` 日志器。
-4. 组装模块列表与 `shell.Options`（模块、窗口尺寸、`*config.Config`、托盘）。
-5. `shell.Run(opts)` 先按配置应用主题（保证首帧正确），再注册回调（`WhenReady`、第二实例、全部窗口关闭、退出前清理），然后 `mygo.App.Run()` 进入事件循环。
-6. `WhenReady` 里应用语言、创建主窗口与托盘，给每个模块建一个 `task.Runner`，调用 `Init`，注册全局快捷键，最后激活当前页。
-7. 退出时 `OnBeforeQuit` → `shell.close()`：关闭所有 runner（取消任务并等待 goroutine），注销全局快捷键，销毁托盘。
-
-## 契约（internal/contract）
-
-| 接口 | 用途 | 实现方 |
-| --- | --- | --- |
-| `Module` | 主窗口功能页：`ID`、`Group`、`Title`、`Icon`、`Init(Host)`、`View(*ui.Context)` | `features/welcome`、`features/launcher` |
-| `Live` | 可选：页面激活/离开钩子 `OnActivate` / `OnDeactivate` | 需要时由模块实现 |
-| `Toggleable` | 可选：`Enabled()`，禁用后外壳跳过它的全局快捷键 | `features/launcher` |
-| `GlobalHotkeyer` | 可选：`Hotkeys()` 声明 ID、默认 accelerator、描述与回调 | `features/launcher` |
-| `Closer` | 可选：`Close()`，退出时释放窗口、数据库等资源 | `features/launcher` |
-| `Host` | 外壳给功能的运行时设施：`Tasks`、`Log`、`Feature`（本功能的配置节点）、`SaveConfig`、`SetEnabled`、`HotkeysChanged` | `shell.host` |
-
-## 新增一个工具页
-
-1. 在 `internal/features/` 下建包，例如 `ping`：
-
-```go
-package ping
-
-import (
-	"log/slog"
-
-	"github.com/Cyenoch/mygoicons/lucide"
-	"github.com/Cyenoch/mygoui/theme"
-	"github.com/Neuz/DevToys/internal/contract"
-	"github.com/Neuz/DevToys/internal/features/ping/locales"
-	"github.com/Neuz/DevToys/internal/task"
-	"github.com/egoist/mygo/ui"
-)
-
-type Module struct {
-	tasks *task.Runner
-	log   *slog.Logger
-}
-
-func New() *Module { return &Module{} }
-
-func (m *Module) ID() string    { return "ping" }
-func (m *Module) Group() string { return "" } // 空分组，侧栏不显示分组标题
-func (m *Module) Title() string { return locales.T("title") }
-func (m *Module) Icon() *ui.SVG { return lucide.Activity() } // 返回 nil 时外壳用通用图标
-
-func (m *Module) Init(h contract.Host) {
-	m.tasks = h.Tasks()
-	m.log = h.Log()
-}
-
-func (m *Module) View(c *ui.Context) {
-	theme.Apply(c)
-	// 后台任务用 task.Go(m.tasks, "ping", fn)，结果在帧里通过 Result 读取。
-}
-```
-
-2. 在 `app.Run` 的模块列表里加一行：`ping.New()`。
-
-3. 在 `internal/features/ping/locales/` 下放 `en.json`、`zh-Hans.json`，并照着欢迎页的 `locales.go` 写 `//go:embed`、`i18n.NewCatalog`、`i18n.Register` 和 `T(key)`；目录已按模块隔离，key 不需要加模块前缀，直接用 `locales.T("title")` 读取。`go tool mygo generate` 只管理根 `locales/`，不处理各 feature 的目录。
-
-侧栏条目、标题栏标题和页面切换都由外壳自动完成，启动时进入模块列表的第一个页面。长时间运行的工作请走 `task.Go`，不要直接在 `View` 里阻塞；同一个 key 的新任务会取消并顶替旧任务。
-
-## 窗口与导航
-
-- 页面结构由 `shell.go` 的 `view` 自行组装，不用 `layout.Scaffold`：
-  - 顶层 `ui.Row`：左侧是整列 `mygoui.Sidebar`（分组 + 图标 + 标题，自己管理宽度、背景与折叠动画，贯通窗口高度）；
-  - 右侧是 `ui.Column`：上面是标题栏（模块图标 + 标题 + 分组副标题，右侧插槽留给操作按钮），下面是 `Grow(1)` 的内容区；内容区用 `mygoui.ScrollArea` 承载当前模块的 `View`，超出高度时整体滚动，滚动位置由外壳跨帧保存；
-  - 分组名来自模块的 `Group()`，同组条目按注册顺序排列，分组顺序取首次出现的位置。
-- 没有原生标题栏（`TitleBarStyle: TitleBarHidden`）：页面铺满整个窗口，系统窗口按钮悬浮在页面之上。右侧标题栏按 `c.TitleBar()` 报告的结束侧 insets 留出控件空间，整条可拖动窗口；高度取「44 DIP、原生按钮带、按钮行高」三者最大值，文字缩放变大时按钮也不会被裁切。侧栏本身也标记为拖动区域，所以侧栏顶部的空白处同样可以移动窗口。
-- 侧栏展开宽度 180、折叠后 48，两个值都是 `sidebar.go` 里的常量，不可拖动调整，也不写入配置。宽度由 `mygoui.Sidebar` 自己持有并做折叠动画，右侧内容区作为 flex 兄弟节点跟着一起动，不会留下空白。
-- 侧栏底部插槽（`mygoui.SidebarOptions.Footer`）放常驻的设置入口；侧栏展开时是整行按钮，折叠后收成齿轮图标。
-- 设置按钮打开**独立的设置窗口**（`shell/settings.go`）：它是主窗口的子窗口，随主窗口显示/隐藏，且以模态方式打开；顶部是「通用 / 快捷键」两个选项卡。通用页用 `mygoui.SettingsGroup` 放外观（横向单选组）、语言（下拉选择）与开机启动；快捷键页用 `form.HotkeyInput` 录制显示/隐藏窗口的组合。改动即时应用并写回 `config.json`。功能开关与功能自己的快捷键不在这里，由各功能的页面管理。
-- 标题栏右侧的插槽（`titleBarOptions.Trailing`）提供给调用方放操作按钮，目前留空。
-- 没有搜索框、没有工具搜索，导航就是侧栏列表。
-
-## 配置、日志、主题、语言
-
-**配置文件** `os.UserConfigDir()/DevToys/config.json`：
-
-| 字段 | 说明 |
-| --- | --- |
-| `log_level` | `debug` / `info` / `warn` / `error`，默认 `info` |
-| `theme` | `system` / `light` / `dark`，默认跟随系统 |
-| `locale` | `system` / `en` / `zh-Hans`，默认跟随系统 |
-| `hotkey.global.window_toggle` | 全局显示/隐藏窗口的 accelerator（如 `Ctrl+Shift+Space`），默认空，不注册 |
-| `features.<id>.enabled` | 功能是否启用，默认 `true`；禁用后该功能的全局快捷键不再注册 |
-| `features.<id>.hotkeys` | 该功能声明自己的快捷键，键是热键 ID（如 `{"toggle":"Alt+F"}`）。**缺省**时用功能内置默认值；键存在但值为空串表示用户显式删除，不注册任何快捷键 |
-| `features.<id>.options` | 该功能自己的配置，结构由功能定义 |
-
-写入走 `fsx.WriteFile`（临时文件 + fsync + rename），损坏或缺失时回退默认值；未知的 `theme`/`locale` 在读取时归一化为跟随系统。旧的扁平键 `hotkey_global` / `hotkey_sidebar` 已废弃，不再读取，升级后需在设置窗口重新录制。
-
-**日志**：`os.UserConfigDir()/DevToys/devtoys.log`。级别取 `config.log_level`，统一用 `slog.TextHandler` 输出文本；开发模式（`go tool mygo dev`）或 `debug` 级别时同时写 stderr。日志目录不可写时降级为只写 stderr，不会阻止应用启动。本期不做轮转。
-
-**主题**：`shell` 的 `applyTheme` 把 `config.ThemeMode` 映射到 `mygo.Theme.SetSource`（启动时在 `App.Run` 之前调用一次），mygoui 组件在每帧用 `theme.Apply(c)` 读取当前外观。主题只在设置窗口里修改：设置页直接改 `shell.Options.Config` 并保存，随后由外壳重绘。
-
-**语言**：每个消息目录各自是一个 `i18n.Catalog` 并调用 `i18n.Register`，注册的语言会合并。基准语言（source）是 `zh-Hans`，`en` 作为翻译：当前语言缺词时回退到基准语言。根 `locales/` 放外壳与公共文案，由 `go tool mygo generate` 维护（改完 `zh-Hans.json` / `en.json` 执行一次，生成 `catalog_gen.go`，key 变成 `locales.SettingsTitle()` 这样的函数；`@` 描述取自基准语言 `zh-Hans.json`）；`internal/features/<name>/locales/` 归各模块自己，JSON 与 `T(key)` 入口手写，`mygo generate` 不会覆盖或校验。`T` 用 `Catalog.Format(i18n.Locale(), key, nil)` 取词，无参数消息由 i18n 缓存。运行时用 `mygo.App.SetLocale` 切换，`shell` 的 `applyLocale` 把配置里的 `system` 映射成 mygo 的空字符串（跟随系统）：外壳在首帧调用一次，之后设置窗口改动同样走这里，并由外壳统一重绘主窗口与设置窗口。
-
-**全局快捷键**：`shell` 用 `mygo.GlobalShortcut.Register` 统一注册，`rebindHotkeys` 先注销旧绑定再重建：外壳的 `hotkey.global.window_toggle` 加每个启用模块通过 `contract.GlobalHotkeyer` 声明的全部快捷键。重复或注册失败只记一条 `warn`，不影响其他绑定。触发窗口开关时显示并聚焦主窗口，或把主窗口收起（有托盘时等同隐藏）。
-
-**开机启动**：设置页的开关直接调用 `mygo.App.SetOpenAtLogin` / `OpenAtLogin`，以系统状态为唯一事实来源，不写进 `config.json`；开发模式下该开关置灰，因为 Run 项会指向临时构建产物。
-
-## 启动器
-
-启动器（`features/launcher`）是一个全局快速启动面板：
-
-- **唤起**：默认 `Alt+F`，可在启动器设置页用 `form.HotkeyInput` 重新录制；清空即删除快捷键，不会回退默认值，此后只能用设置页的【触发】按钮或侧栏打开。启用开关同样在启动器设置页，禁用后外壳不再注册它的快捷键。
-- **索引**：通过 `mygo.Shell.InstalledApps()` 列出开始菜单里的全部应用（桌面应用与打包应用），按 ID 去重；另内置一批 Windows 设置页（`ms-settings:` URI）与 `mstsc` 等系统程序，按标题去重、内置优先，归入「应用」或「系统」分类。排除词可在设置页【排除关键词】里调整，默认是“卸载 / uninstall / readme / 帮助 / 说明 / 文档”；该项写入 `config.json` 的 `features.launcher.options`（`max_results` 默认 8，0 表示使用默认值；`exclude` 字符串数组）。
-- **图标与描述**：图标由 `mygo.Shell.FileIcon()` 按显示缩放取 PNG，经 `ui.DecodeBitmap` 解码后按条目路径缓存；取不到时回退到名称首字头像。描述显示桌面应用的可执行文件名，打包应用显示“应用”。
-- **别名**：从应用 ID 提炼可搜索的短名——桌面应用是可执行文件名（去掉 `.exe`），打包应用是去掉 `!App` 后的包标识，因此 `code`、`windowscalculator` 之类也能命中。
-- **存储**：索引与使用记录都放在 `os.UserConfigDir()/DevToys/launcher.db`（bbolt）。设置页的【索引】行展示该文件的路径与大小，并带【重建索引】按钮；启动时先读缓存保证首帧，随后后台重新列出应用。
-- **搜索**：查询按空白分词，每个词都必须命中标题或关键词；关键词包含别名、exe 名与拼音（全拼 + 首字母），因此 `jisuanqi` 与 `jsq` 都能找到「计算器」。结果按使用次数、最近使用时间排序。
-- **面板**：每行显示应用图标、标题与描述，支持方向键移动、回车/点击启动、`Esc` 关闭；启动走 `mygo.Shell.LaunchApp`，系统设置条目走 `mygo.Shell.OpenExternal` 打开 `ms-settings:`。空查询只显示搜索框；输入后在下方出现【全部】【应用】【系统】分类控件，高度随结果条数自适应。设置页【显示结果数量】控制一次展示的条数（默认 8），超过 8 条后列表内部滚动。
-
-## 托盘
-
-- 托盘图标复用 `resources.AppIconPNG()` 的 `icon.png`，与窗口图标一致。
-- `shell` 用 `mygo.NewTray` 创建托盘图标，只有右键菜单：显示/隐藏主窗口（右侧显示已设置的全局快捷键）、检查更新、退出；单击与双击不做任何事。本期没有 Flyout 面板，需要启动器时再加。
-- 有托盘时关闭主窗口只是隐藏（macOS 上同时把激活策略切成 Accessory），只有 `Quit` 才真正退出并销毁托盘。
-
-## 构建与验证
+环境：Go 1.27+；当前开发与发布目标为 Windows。
 
 ```bash
-# 开发运行（热重载）
-go tool mygo dev
+go tool mygo dev     # 开发运行（热重载）
+go tool mygo build   # 构建可执行文件与安装包
+```
 
-# 产出安装包/可执行文件
-go tool mygo build
+校验（与 CI 一致）：
 
-# 修改 locales/*.json 后在项目根目录重新生成 catalog_gen.go
-go tool mygo generate
-
-# 格式、静态检查、测试
+```bash
 gofmt -l cmd internal locales resources
 go vet ./...
 go test ./...
 go tool mygo i18n check .
 ```
 
-`internal/shell` 目前没有测试文件；需要回归时可以用 `ui.NewTester` 直接渲染外壳，不依赖真实窗口。
+## 目录速览
+
+```
+cmd/devtoys/        入口：单实例锁 + app.Run
+internal/app/       装配：配置、日志、模块、外壳、托盘
+internal/shell/     外壳：窗口、侧栏、标题栏、设置窗口、托盘、快捷键注册
+internal/contract/  外壳 ↔ 功能的唯一契约
+internal/features/  功能页：welcome（示例）、launcher
+internal/task/      后台任务，结果回到主线程
+internal/config/    config.json 读写与规范化
+internal/logging/   slog 日志器
+internal/hotkey/    快捷键文本与 accelerator 互转
+internal/fsx/       原子写文件
+locales/            外壳与公共文案（catalog_gen.go 由 mygo 生成）
+resources/          应用图标与嵌入资源
+docs/               需求、架构、进度与功能文档
+```
 
 ## 约定
 
-- 业务错误一律显式返回并带上下文（`fmt.Errorf("...: %w", err)`），不在业务逻辑里 panic。
-- UI 状态只在主线程读写；后台 goroutine 只通过 `task.Runner` 交付结果，`Close` 负责取消并等待。
-- 功能包只依赖 `contract` 与基础设施包，反过来 `shell` 不认识任何具体功能。
-- 新增文案先加到 `locales/zh-Hans.json`（基准语言，带 `@` 描述），再补 `locales/en.json`，最后重新生成。
-- 本期未做：命令行模式（`cmd` 里预留位置）、工具搜索、日志轮转、配置迁移。
+- 依赖单向：`cmd → app → shell → contract ← features`；`features` 不 import `shell`，`shell` 不认识具体功能，装配只在 `app`。
+- UI 状态只在主线程读写；后台 goroutine 通过 `task.Runner` 把结果交回帧里，退出时统一取消并等待。
+- 业务错误显式返回并带上下文（`fmt.Errorf("...: %w", err)`），不在业务逻辑里 panic。
+- 新增文案先写 `locales/zh-Hans.json`（基准语言，带 `@` 描述），再补 `en.json`，最后执行 `go tool mygo generate`。
+
+## 许可证
+
+[MIT](LICENSE)
