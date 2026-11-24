@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+  "title": "QR Code",
+  "subtitle": "QR Code generator",
+  "content": "Content text",
+  "size": "Size (px)",
+  "size_hint": "Only affects copy/save size",
+  "level": "Error correction",
+  "level_low": "Low (7%)",
+  "level_medium": "Medium (15%)",
+  "level_quartile": "Quartile (25%)",
+  "level_high": "High (30%)",
+  "foreground": "Foreground",
+  "background": "Background",
+  "colors": "Colors",
+  "save": "Save",
+  "copy": "Copy",
+  "copied": "Copied",
+  "save_dialog": "Save QR code",
+  "png_filter": "PNG image",
+  "save_failed": "Save failed",
+  "copy_failed": "Copy failed"
+}

@@ -1,0 +1,23 @@
+{
+  "@@locale": "zh-Hans",
+  "title": "二维码",
+  "subtitle": "二维码生成器",
+  "content": "内容文本",
+  "size": "尺寸 (px)",
+  "size_hint": "仅影响复制/保存的尺寸",
+  "level": "纠错级别",
+  "level_low": "低（7%）",
+  "level_medium": "中（15%）",
+  "level_quartile": "较高（25%）",
+  "level_high": "高（30%）",
+  "foreground": "前景色",
+  "background": "背景色",
+  "colors": "颜色",
+  "save": "保存",
+  "copy": "复制",
+  "copied": "已复制",
+  "save_dialog": "保存二维码",
+  "png_filter": "PNG 图片",
+  "save_failed": "保存失败",
+  "copy_failed": "复制失败"
+}

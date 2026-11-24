@@ -2,7 +2,6 @@
   "@@locale": "en",
   "title": "Welcome Page",
   "subtitle": "A toolbox for developers.",
-  "hint_sidebar": "Pick a tool from the left.",
   "demo_run": "Run a slow task",
   "demo_running": "Running in the background…",
   "demo_done": "Done in %s"

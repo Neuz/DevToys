@@ -14,7 +14,7 @@ import (
 func (m *Module) View(c *ui.Context) {
 	theme.Apply(c)
 	enabled := m.Enabled()
-	ui.Column(c).Fill().Padding(theme.Space(8)).Gap(theme.Space(5)).Children(func() {
+	ui.Column(c).Fill().Padding(theme.Space(2), theme.Space(8)).Gap(theme.Space(5)).Children(func() {
 		ui.Column(c).Gap(theme.Space(1)).Children(func() {
 			mygoui.Heading(c, int(theme.TypeH1), locales.T("title"))
 			mygoui.Typography(c, locales.T("subtitle"), mygoui.TypographyOptions{

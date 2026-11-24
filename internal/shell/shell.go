@@ -266,6 +266,8 @@ func (h host) Tasks() *task.Runner { return h.tasks }
 
 func (h host) Log() *slog.Logger { return h.log }
 
+func (h host) Window() *mygo.Window { return h.shell.win }
+
 func (h host) Feature() *config.Feature { return h.shell.opts.Config.FeatureNode(h.id) }
 
 func (h host) SaveConfig() error { return h.shell.opts.Config.Save() }

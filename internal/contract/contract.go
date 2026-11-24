@@ -9,6 +9,7 @@ import (
 
 	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/internal/task"
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
 
@@ -18,6 +19,8 @@ type Host interface {
 	Tasks() *task.Runner
 	// Log 返回带应用标识的日志器。
 	Log() *slog.Logger
+	// Window 返回功能所在的主窗口，用于把弹出层挂成原生 flyout。
+	Window() *mygo.Window
 	// Feature 返回本功能的配置节点，功能只应改写自己的节点。
 	Feature() *config.Feature
 	// SaveConfig 持久化当前配置。

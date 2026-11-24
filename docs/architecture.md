@@ -74,7 +74,7 @@ DevToys/
 | `GlobalHotkeyer` | 可选：`Hotkeys()` 声明 ID、默认 accelerator、描述与回调 | `features/launcher` |
 | `Hotkey` | 快捷键声明：`ID`、`Default`、`Description`、`Run` | 由 `GlobalHotkeyer` 返回 |
 | `Closer` | 可选：`Close()`，退出时释放窗口、数据库等资源 | `features/launcher` |
-| `Host` | 外壳给功能的运行时设施：`Tasks`、`Log`、`Feature`、`SaveConfig`、`SetEnabled`、`HotkeysChanged` | `shell.host` |
+| `Host` | 外壳给功能的运行时设施：`Tasks`、`Log`、`Window`、`Feature`、`SaveConfig`、`SetEnabled`、`HotkeysChanged` | `shell.host` |
 
 `Host.Feature()` 返回该模块自己的 `config.Feature` 节点（`enabled`、`hotkeys`、`options`），功能只应改写自己的节点，并通过 `SaveConfig()` 落盘。
 
