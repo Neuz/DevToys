@@ -15,9 +15,11 @@ import (
 	"github.com/Cyenoch/mygoicons/lucide"
 	"github.com/Cyenoch/mygoui/form"
 	"github.com/Cyenoch/mygoui/list"
+	"github.com/Cyenoch/mygoui/overlay"
 	"github.com/Neuz/DevToys/internal/contract"
 	"github.com/Neuz/DevToys/internal/features/launcher/locales"
 	"github.com/Neuz/DevToys/internal/hotkey"
+	"github.com/Neuz/DevToys/internal/task"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
@@ -76,8 +78,16 @@ type Module struct {
 	entries []Entry
 	// usage 是各条目的启动次数，主线程读写。
 	usage map[string]Usage
-	// gen 是索引重建的代数，旧任务的结果不再采用。
-	gen uint64
+	// tasks 是外壳分配给本模块的后台任务 runner。
+	tasks *task.Runner
+	// index 是最近一次后台重建索引的任务；结果在面板帧里采用。
+	index *task.Result[[]Entry]
+	// appliedIndex 记录已采用过结果的任务，避免重复应用与重复记日志。
+	appliedIndex *task.Result[[]Entry]
+	// manualIndex 是需要弹 Toast 的那次重建；nil 表示无需提示。
+	manualIndex *task.Result[[]Entry]
+	// toasts 是设置页的 Toast 状态。
+	toasts overlay.ToastState
 	// log 是带模块标识的日志器。
 	log *slog.Logger
 	// store 持久化索引与使用记录；打开失败时为 nil，降级为不持久化。
@@ -101,6 +111,7 @@ func (m *Module) Icon() *ui.SVG { return lucide.Search() }
 func (m *Module) Init(h contract.Host) {
 	m.host = h
 	m.log = h.Log()
+	m.tasks = h.Tasks()
 	if st, err := openStore(); err != nil {
 		m.log.Warn("launcher: 打开索引数据库", "error", err)
 	} else {
@@ -114,7 +125,7 @@ func (m *Module) Init(h contract.Host) {
 	m.loadUsage()
 	// 启动时先同步读缓存，随即在后台核对目录修改时间并按需重建。
 	m.entries = m.loadCachedEntries()
-	m.rebuildIndex()
+	m.rebuildIndex(false)
 }
 
 // Close 释放面板窗口与索引数据库；由外壳在退出时调用。
@@ -210,6 +221,6 @@ func (m *Module) changeOptions() {
 		return
 	}
 	if !slices.Equal(opts.Exclude, current.Exclude) {
-		m.rebuildIndex()
+		m.rebuildIndex(false)
 	}
 }

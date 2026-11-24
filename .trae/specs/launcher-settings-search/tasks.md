@@ -140,7 +140,7 @@
 - [x] `Module` 新增 `maxResults form.NumberFieldState`、`excludeTags []string`，`Init` 用 `m.options()` 初始化。
 - [x] 设置页新增【显示结果数量】（`form.NumberField`，不设上下限，`0` 用默认值）与【排除关键词】（`form.TagsInput`）。
 - [x] 新增 `changeOptions()`：把值编码进 `features.launcher.options` 并保存，失败回滚。
-- [x] 排除词变化（`slices.Equal` 比较）后调用 `rebuildIndex()`；结果条数变化即时生效。
+- [x] 排除词变化（`slices.Equal` 比较）后调用 `rebuildIndex(false)`；结果条数变化即时生效。
 - [x] 新增 4 个文案 key，README 补充设置项与 `features.launcher.options` 说明。
 - [x] 验证：build/vet/test/i18n/gofmt 通过。
 

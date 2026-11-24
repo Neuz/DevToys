@@ -42,8 +42,8 @@ func TestEntriesFromApps(t *testing.T) {
 	if code.Description != "Code.exe" {
 		t.Errorf("code description = %q, want Code.exe", code.Description)
 	}
-	if !strings.Contains(code.Pinyin, "visualstudiocode") {
-		t.Errorf("code pinyin = %q", code.Pinyin)
+	if !strings.Contains(code.Keywords, "visualstudiocode") {
+		t.Errorf("code keywords = %q, want pinyin", code.Keywords)
 	}
 
 	calc := byTitle["计算器"]
@@ -53,8 +53,8 @@ func TestEntriesFromApps(t *testing.T) {
 	if calc.Description != "" {
 		t.Errorf("packaged description = %q, want empty", calc.Description)
 	}
-	if !strings.Contains(calc.Pinyin, "jisuanqi") {
-		t.Errorf("calc pinyin = %q", calc.Pinyin)
+	if !strings.Contains(calc.Keywords, "jisuanqi") {
+		t.Errorf("calc keywords = %q, want pinyin", calc.Keywords)
 	}
 
 	remote := byTitle["远程桌面连接"]

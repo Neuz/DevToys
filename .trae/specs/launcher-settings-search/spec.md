@@ -32,12 +32,12 @@
 
 ```go
 type Entry struct {
-    Title    string `json:"title"`
-    Path     string `json:"path"`
-    Keywords string `json:"keywords"` // 标题 + 相对目录，保持现状，供搜索命中
-    Source   string `json:"source"`   // "start_menu" | "desktop"
-    Folder   string `json:"folder"`   // 相对来源根目录的目录，"" 表示根
-    Pinyin   string `json:"pinyin"`   // 标题的全拼与首字母，小写，空格分隔
+    Title       string `json:"title"`
+    ID          string `json:"id"`          // 去重键；旧缓存为空的条目会被忽略
+    Path        string `json:"path"`        // 交给 mygo.Shell 画图标与启动
+    Keywords    string `json:"keywords"`    // 标题 + 别名 / exe 名 / 补充词 / 拼音
+    Description string `json:"description"` // 可执行文件名；打包应用为空
+    Category    string `json:"category"`    // app | system
 }
 ```
 
@@ -70,8 +70,9 @@ type Entry struct {
 
 1. 启用开关（现有，不变）。
 2. 触发快捷键（现有 `form.HotkeyInput`，`Clearable: true`，新增 `Placeholder: settings_hotkey_unset`）。
-3. **触发**（新增）：`Icon: lucide.Play()`，`Title: settings_trigger`，`Subtitle: settings_trigger_hint`，Trailing 为 `mygoui.Button{Label: settings_trigger, Variant: ButtonOutline, Size: theme.ButtonSmall, Icon: lucide.Play(), OnClick: m.toggle}`。
-4. **索引**（新增）：`Icon: lucide.Database()`，`Title: settings_index`，`Subtitle` 为 `<db 绝对路径> · <大小>`，Trailing 为 `mygoui.Button{Label: settings_rebuild, Variant: ButtonOutline, Size: theme.ButtonSmall, Icon: lucide.RefreshCw(), OnClick: m.rebuildIndex}`。
+3. **触发**（新增）：`Icon: lucide.Play()`，`Title: settings_trigger`，Trailing 为 `mygoui.Button{Label: settings_trigger, Variant: ButtonOutline, Size: theme.ButtonSmall, Icon: lucide.Play(), OnClick: m.toggle}`。
+4. **索引**（新增）：`Icon: lucide.Database()`，`Title: settings_index`，`Subtitle` 为 `<db 绝对路径> · <大小>`，Trailing 为 `mygoui.Button{Label: settings_rebuild, Variant: ButtonOutline, Size: theme.ButtonSmall, Icon: lucide.RefreshCw(), OnClick: func() { m.rebuildIndex(true) }}`。
+5. **Toast**：按钮调用 `m.rebuildIndex(true)`，`rebuildIndex(notify bool)` 记录本次是否需要提示；`notifyIndexResult` 在帧里检测到结果完成后通过 `overlay.Toast` 弹一次卡片（成功 `ToastSuccess`，失败 `ToastDanger` 并带错误描述）；启动与配置变更触发的自动重建传 `false`，保持静默。`ToastState.View(c)` 安装在设置页末尾。
 
 - 大小由 `os.Stat` 得到，`formatBytes(int64) string`：`< 1 KiB` 用 B，`< 1 MiB` 用 KB，否则 MB（1 位小数）。文件不存在时显示 `—`。
 - 禁用时仍显示提示文案（现状保留）。
@@ -118,16 +119,16 @@ type Entry struct {
 
 ## 5. 拼音模糊搜索（`search.go`、`index.go`）
 
-- 索引阶段为每个条目生成 `Pinyin`：
+- 索引阶段为每个条目生成拼音，直接追加进 `Entry.Keywords`（不单独存字段）：
   ```go
   pinyin.Pinyin(title, args) → 逐音节拼接成全拼；取每音节首字母拼成首字母串
   ```
   全拼与首字母都转小写，用空格连接；非中文由 go-pinyin 原样返回（ASCII 标题因此天然支持首字母/缩写匹配）。
 - `filter(entries, query)`：
   - 查询按空白切分为 token（小写）；无 token 返回全部。
-  - 每个 token 都必须出现在 `strings.ToLower(e.Title + " " + e.Keywords + " " + e.Pinyin)` 中（AND 语义）。
+  - 每个 token 都必须出现在 `strings.ToLower(e.Title + " " + e.Keywords)` 中（AND 语义）。
   - 空查询/空白查询行为不变。
-- 匹配覆盖：标题、副标题（`Folder` 经 `Keywords` 参与）、拼音全拼、拼音首字母。
+- 匹配覆盖：标题、别名、exe 名、补充关键词、拼音全拼、拼音首字母，全部经 `Keywords` 参与。
 - 排序仍由 `rank` 决定（使用次数 → 最近使用 → 标题长度 → 字典序），本轮不引入相关度打分。
 
 ## 6. 文案（`internal/features/launcher/locales/{zh-Hans,en}.json`）
@@ -137,9 +138,10 @@ type Entry struct {
 | key | zh-Hans | en |
 | --- | --- | --- |
 | `settings_trigger` | 触发 | Trigger |
-| `settings_trigger_hint` | 立即打开启动器面板 | Open the launcher panel now |
 | `settings_index` | 索引 | Index |
 | `settings_rebuild` | 重建索引 | Rebuild index |
+| `toast_index_ok` | 索引重建完成 | Index rebuilt |
+| `toast_index_failed` | 索引重建失败 | Index rebuild failed |
 | `settings_hotkey_unset` | 未设置 | Not set |
 | `source_start_menu` | 开始菜单 | Start menu |
 | `source_desktop` | 桌面 | Desktop |
@@ -181,7 +183,7 @@ type Entry struct {
 - 面板由 `navigation.Command` 改为自绘列表，键盘行为（上下/回车/Esc/IME）需要手测；实现按 `Command` 的既有约定复刻。
 - 描述仅反映快捷方式所在目录，不解析 exe 元数据；若后续需要真实应用描述，再引入 `.lnk` 目标解析。
 - 首次启动会从 JSON 迁移到 bbolt；旧 JSON 缓存文件不再读取（未随发布，无需兼容）。
-- 索引重建仍在独立 goroutine 中执行，结果经 `mygo.RunOnMain` 回主线程；`store` 关闭后写失败只记 debug。
+- 索引重建通过 `task.Go(m.tasks, "index", buildIndex)` 执行，`buildIndex` 接受 `context.Context`；结果在主线程的面板帧里由 `applyIndexResult` 采用，`store` 关闭后写失败只记 debug。`InstalledApps` 不可取消，退出时 Runner 会短暂等待它返回。
 
 ## 10. 面板高度随结果自适应（FitContent 语义）
 
@@ -252,8 +254,8 @@ func panelMaxListHeight(scale float32) float32
 
 | 行 | 控件 | 文案 key |
 | --- | --- | --- |
-| 显示结果数量 | `form.NumberField`，宽度 `theme.Scale(c, 120)`；`0` 或负数按默认值 8 处理 | `settings_max_results`、`settings_max_results_hint` |
-| 排除关键词 | `form.TagsInput`（逗号或回车分隔） | `settings_exclude`、`settings_exclude_hint` |
+| 显示结果数量 | `form.NumberField`，宽度 `theme.Scale(c, 120)`；`0` 或负数按默认值 8 处理 | `settings_max_results` |
+| 排除关键词 | `form.TagsInput`（逗号或回车分隔） | `settings_exclude` |
 
 两行都插在【触发快捷键】之后、【触发】之前，`OnChange` 均为 `m.changeOptions`。
 
@@ -264,7 +266,7 @@ func panelMaxListHeight(scale float32) float32
 - 新增 `(*Module) changeOptions()`：
   - 读取 `current := m.options()`，用当前控件值构造 `indexOptions{MaxResults: int(m.maxResults.Value), Exclude: m.excludeTags}.normalized()`；
   - `json.Marshal` 后写入 `m.host.Feature().Options`，`SaveConfig` 失败则回滚 `Options` 并记 error；
-  - 仅当 `opts.Exclude` 与 `current.Exclude` 不同（`slices.Equal`）时调用 `m.rebuildIndex()`，因为排除在建索引时应用；结果条数只影响查询，无需重建。
+  - 仅当 `opts.Exclude` 与 `current.Exclude` 不同（`slices.Equal`）时调用 `m.rebuildIndex(false)`，因为排除在建索引时应用；结果条数只影响查询，无需重建。
 
 ### 11.3 生效范围
 
@@ -287,7 +289,7 @@ func panelMaxListHeight(scale float32) float32
 - `entriesFromApps` 全部标记为 `categoryApp`；旧缓存没有该字段时按应用处理（`categoryOf`）。
 - 新增 `builtins` 表（31 项设置 + `mstsc`）：每项 `{本地化 key, target, 中英文补充关键词, settings}`，设置项的 `target` 是 `ms-settings:` URI，程序项的 `target` 是 System32 下的 exe 文件名。
 - 设置项覆盖显示、声音、通知、电源、存储、应用、网络、蓝牙、个性化、隐私、更新、时间、鼠标、键盘、关于、账户、登录选项、默认应用、启动应用、可选功能、任务栏、多任务、剪贴板、语言和区域、字体、恢复、激活、疑难解答、开发者选项、辅助功能、打印机和扫描仪；设置首页与 Windows 安全中心已由开始菜单索引，不再重复收录。
-- 新增 `builtinEntries() []Entry`：设置项 `ID` 与 `Path` 都是 URI、分类为系统；程序项把 `target` 解析为完整 exe 路径（不存在则跳过），分类为应用，`Description` 为 exe 文件名；`Pinyin` 统一走 `pinyinText`。
+- 新增 `builtinEntries() []Entry`：设置项 `ID` 与 `Path` 都是 URI、分类为系统；程序项把 `target` 解析为完整 exe 路径（不存在则跳过），分类为应用，`Description` 为 exe 文件名；标题、别名与拼音统一拼接进 `Keywords`。
 - `buildIndex` 在 `runtime.GOOS == "windows"` 时把内置条目排到应用之前并合并，再用 `dedupeByTitle` 按标题去重（内置优先），最后统一按排除词过滤；因此 `mstsc` 会取代同名的 Store「远程桌面连接」应用。
 
 ### 12.2 过滤（`search.go`）

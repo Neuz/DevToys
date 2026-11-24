@@ -47,7 +47,7 @@ func TestFilterCategory(t *testing.T) {
 }
 
 func TestFilterMatchesPinyin(t *testing.T) {
-	entries := []Entry{{Title: "计算器", Path: "calc", Pinyin: pinyinText("计算器")}}
+	entries := []Entry{{Title: "计算器", Path: "calc", Keywords: pinyinText("计算器")}}
 	for _, query := range []string{"jisuanqi", "jsq", "JISUANQI"} {
 		if got := filter(entries, query); len(got) != 1 {
 			t.Fatalf("query %q matched %+v, want calc", query, got)

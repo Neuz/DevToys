@@ -13,7 +13,7 @@ type Usage struct {
 }
 
 // filter 返回命中查询的条目。查询按空白切成多个词，每个词都必须出现在
-// 标题、关键词或拼音（全拼与首字母）里，匹配不区分大小写。
+// 标题或关键词里（关键词已包含别名与拼音），匹配不区分大小写。
 // 空查询返回全部条目。
 func filter(entries []Entry, query string) []Entry {
 	tokens := strings.Fields(strings.ToLower(query))
@@ -22,7 +22,7 @@ func filter(entries []Entry, query string) []Entry {
 	}
 	out := make([]Entry, 0, len(entries))
 	for _, e := range entries {
-		haystack := strings.ToLower(e.Title + " " + e.Keywords + " " + e.Pinyin)
+		haystack := strings.ToLower(e.Title + " " + e.Keywords)
 		if containsAll(haystack, tokens) {
 			out = append(out, e)
 		}

@@ -18,9 +18,8 @@ func TestStoreIndexRoundTrip(t *testing.T) {
 		Title:       "计算器",
 		ID:          "Microsoft.WindowsCalculator_8wekyb3d8bbwe!App",
 		Path:        `shell:AppsFolder\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App`,
-		Keywords:    "计算器 Microsoft.WindowsCalculator_8wekyb3d8bbwe",
+		Keywords:    "计算器 Microsoft.WindowsCalculator_8wekyb3d8bbwe jisuanqi jsq",
 		Description: "",
-		Pinyin:      "jisuanqi jsq",
 	}}
 	if err := st.SaveIndex(entries); err != nil {
 		t.Fatal(err)

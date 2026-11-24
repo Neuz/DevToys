@@ -11,19 +11,19 @@ import (
 
 	"github.com/Neuz/DevToys/internal/config"
 	"github.com/Neuz/DevToys/internal/features/launcher/locales"
+	"github.com/Neuz/DevToys/internal/task"
 	"github.com/egoist/mygo"
 	"github.com/mozillazg/go-pinyin"
 )
 
 // Entry 是索引里的一个可启动应用。Title 是系统显示的名称，Path 交给
-// mygo.Shell 画图标与启动，ID 用作去重键并参与别名搜索。
+// mygo.Shell 画图标与启动，ID 用作去重键；搜索只匹配 Keywords。
 type Entry struct {
 	Title       string `json:"title"`
 	ID          string `json:"id"`
 	Path        string `json:"path"`
-	Keywords    string `json:"keywords"`    // 标题 + 别名 / exe 名 / 分类补充词
+	Keywords    string `json:"keywords"`    // 标题 + 别名 / exe 名 / 分类补充词 / 拼音
 	Description string `json:"description"` // 可执行文件名；打包应用为空
-	Pinyin      string `json:"pinyin"`      // 标题的全拼与首字母，小写
 	Category    string `json:"category"`    // app | system
 }
 
@@ -95,8 +95,7 @@ func builtinEntries() []Entry {
 			Title:    title,
 			ID:       b.target,
 			Path:     b.target,
-			Keywords: title + " " + b.keywords,
-			Pinyin:   pinyinText(title),
+			Keywords: strings.TrimSpace(title + " " + b.keywords + " " + pinyinText(title)),
 			Category: categorySystem,
 		}
 		if !b.settings {
@@ -200,13 +199,13 @@ func entriesFromApps(apps []mygo.InstalledApp) []Entry {
 			!strings.EqualFold(stem, title) && !strings.EqualFold(stem, alias) {
 			keywords += " " + stem
 		}
+		keywords = strings.TrimSpace(keywords + " " + pinyinText(title))
 		out = append(out, Entry{
 			Title:       title,
 			ID:          app.ID,
 			Path:        app.Path,
 			Keywords:    keywords,
 			Description: appDescription(app),
-			Pinyin:      pinyinText(title),
 			Category:    categoryApp,
 		})
 	}
@@ -343,27 +342,43 @@ func (m *Module) loadCachedEntries() []Entry {
 	return applyExclude(entries, m.options().Exclude)
 }
 
-// rebuildIndex 在后台重建索引；完成后回到主线程替换内存并刷新面板。
+// indexTaskKey 是索引重建任务在 Runner 上的 key；同 key 新任务会取消旧任务。
+const indexTaskKey = "index"
+
+// rebuildIndex 在后台重建索引，结果经 Runner 的 post 回到主线程，
+// 面板在下一帧通过 applyIndexResult 采用。notify 表示完成后是否弹 Toast，
+// 启动与配置变更触发的自动重建不需要提示。
 //
-// 这里不用 host.Tasks()：runner 关闭时会在主线程 wg.Wait，而后台结果又要
-// 通过 RunOnMain 回到主线程，两者相遇会互相等待；索引没有必须完成的生命
-// 周期，用独立 goroutine 更安全。
-func (m *Module) rebuildIndex() {
+// 注意 InstalledApps 不接受 context：退出时 Runner.Close 会等它返回，
+// 因此退出可能短暂等待；post 是异步的，不会与主线程互相等待。
+func (m *Module) rebuildIndex(notify bool) {
 	if m.host == nil {
 		return
 	}
-	m.gen++
-	gen := m.gen
-	go func() {
-		entries, err := m.buildIndex(context.Background())
-		if err != nil {
-			if m.log != nil {
-				m.log.Debug("launcher: 重建索引失败", "error", err)
-			}
-			return
+	m.index = task.Go(m.tasks, indexTaskKey, m.buildIndex)
+	if notify {
+		m.manualIndex = m.index
+	}
+}
+
+// applyIndexResult 在主线程采用后台重建的结果；任务未完成或已采用过时跳过。
+func (m *Module) applyIndexResult() {
+	r := m.index
+	if r == nil || r == m.appliedIndex || r.Running() {
+		return
+	}
+	m.appliedIndex = r
+	if err := r.Err(); err != nil {
+		if m.log != nil {
+			m.log.Debug("launcher: 重建索引失败", "error", err)
 		}
-		mygo.RunOnMain(func() { m.applyIndex(gen, entries) })
-	}()
+		return
+	}
+	entries, ok := r.Value()
+	if !ok {
+		return
+	}
+	m.entries = entries
 }
 
 // buildIndex 列出已安装应用并刷新缓存。缓存只用于启动时的首帧显示，
@@ -387,15 +402,4 @@ func (m *Module) buildIndex(ctx context.Context) ([]Entry, error) {
 		m.log.Debug("launcher: 写入索引", "error", err)
 	}
 	return entries, nil
-}
-
-// applyIndex 在主线程采用最新一次重建的结果，并让已创建的面板重绘。
-func (m *Module) applyIndex(gen uint64, entries []Entry) {
-	if gen != m.gen {
-		return
-	}
-	m.entries = entries
-	if m.panel != nil {
-		m.panel.Invalidate()
-	}
 }

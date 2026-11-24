@@ -26,6 +26,8 @@ func (m *Module) panelView(c *ui.Context) {
 	t := theme.Colors(c)
 	scale := theme.TextScale(c)
 	m.textScale = scale
+	// 后台重建完成后在帧里采用结果，避免在后台线程写 UI 状态。
+	m.applyIndexResult()
 	ui.Column(c).Fill().Padding(theme.Space(2.5)).Gap(theme.Space(1.5)).
 		Background(t.Background).TextColor(t.Foreground).Children(func() {
 		var input ui.Element
@@ -112,14 +114,17 @@ func (m *Module) renderCategories(c *ui.Context) {
 	for i, label := range labels {
 		items[i] = navigation.TabOptions{Label: label}
 	}
-	navigation.SegmentedControl(c, navigation.SegmentedControlOptions{
-		Selected: &selected,
-		Items:    items,
-		Label:    locales.T("panel_category"),
-		OnChange: func(index int) {
-			m.category = values[index]
-			m.list.Highlight = 0
-		},
+	// 放在 Row 里而不是直接作为列的子项，避免控件被拉伸成整行宽。
+	ui.Row(c).Justify(ui.Center).Children(func() {
+		navigation.SegmentedControl(c, navigation.SegmentedControlOptions{
+			Selected: &selected,
+			Items:    items,
+			Label:    locales.T("panel_category"),
+			OnChange: func(index int) {
+				m.category = values[index]
+				m.list.Highlight = 0
+			},
+		})
 	})
 }
 

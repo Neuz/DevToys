@@ -52,11 +52,12 @@ DevToys/
 │   │   │   └── locales/       该模块自己的 en.json、zh-Hans.json 与 T(key) 入口
 │   │   └── launcher/          全局启动器：快捷键唤起浮层，搜索并启动已安装应用
 │   │       ├── module.go      模块契约、触发快捷键与图标缓存
-│   │       ├── index.go       列出已安装应用、生成别名/拼音关键字、后台重建索引
+│   │       ├── index.go       列出已安装应用与内置入口、去重、生成关键词、后台重建索引
 │   │       ├── store.go       bbolt 持久化：索引条目与使用记录
 │   │       ├── search.go      多词/拼音过滤、按使用记录排序
 │   │       ├── panel.go       浮层面板的创建、定位、显示与隐藏
-│   │       ├── view.go        设置页与面板渲染
+│   │       ├── panel_view.go  面板渲染：搜索框、分类、结果列表与键盘导航
+│   │       ├── view.go        设置页渲染
 │   │       └── locales/       该模块自己的文案
 │   ├── task/task.go           后台任务 runner，结果经 post 回到主线程
 │   ├── config/                config.json 的读写与规范化
@@ -179,11 +180,11 @@ func (m *Module) View(c *ui.Context) {
 启动器（`features/launcher`）是一个全局快速启动面板：
 
 - **唤起**：默认 `Alt+F`，可在启动器设置页用 `form.HotkeyInput` 重新录制；清空即删除快捷键，不会回退默认值，此后只能用设置页的【触发】按钮或侧栏打开。启用开关同样在启动器设置页，禁用后外壳不再注册它的快捷键。
-- **索引**：通过 `mygo.Shell.InstalledApps()` 列出开始菜单里的全部应用（桌面应用与打包应用），按 ID 去重；另内置一批 Windows 设置页（`ms-settings:` URI），归入「系统」分类。排除词可在设置页【排除关键词】里调整，默认是“卸载 / uninstall / readme / 帮助 / 说明 / 文档”；该项写入 `config.json` 的 `features.launcher.options`（`max_results` 5–30，`exclude` 字符串数组）。
+- **索引**：通过 `mygo.Shell.InstalledApps()` 列出开始菜单里的全部应用（桌面应用与打包应用），按 ID 去重；另内置一批 Windows 设置页（`ms-settings:` URI）与 `mstsc` 等系统程序，按标题去重、内置优先，归入「应用」或「系统」分类。排除词可在设置页【排除关键词】里调整，默认是“卸载 / uninstall / readme / 帮助 / 说明 / 文档”；该项写入 `config.json` 的 `features.launcher.options`（`max_results` 默认 8，0 表示使用默认值；`exclude` 字符串数组）。
 - **图标与描述**：图标由 `mygo.Shell.FileIcon()` 按显示缩放取 PNG，经 `ui.DecodeBitmap` 解码后按条目路径缓存；取不到时回退到名称首字头像。描述显示桌面应用的可执行文件名，打包应用显示“应用”。
 - **别名**：从应用 ID 提炼可搜索的短名——桌面应用是可执行文件名（去掉 `.exe`），打包应用是去掉 `!App` 后的包标识，因此 `code`、`windowscalculator` 之类也能命中。
 - **存储**：索引与使用记录都放在 `os.UserConfigDir()/DevToys/launcher.db`（bbolt）。设置页的【索引】行展示该文件的路径与大小，并带【重建索引】按钮；启动时先读缓存保证首帧，随后后台重新列出应用。
-- **搜索**：查询按空白分词，标题、别名、拼音都必须命中；拼音同时收录全拼与首字母，因此 `jisuanqi` 与 `jsq` 都能找到「计算器」。结果按使用次数、最近使用时间排序。
+- **搜索**：查询按空白分词，每个词都必须命中标题或关键词；关键词包含别名、exe 名与拼音（全拼 + 首字母），因此 `jisuanqi` 与 `jsq` 都能找到「计算器」。结果按使用次数、最近使用时间排序。
 - **面板**：每行显示应用图标、标题与描述，支持方向键移动、回车/点击启动、`Esc` 关闭；启动走 `mygo.Shell.LaunchApp`，系统设置条目走 `mygo.Shell.OpenExternal` 打开 `ms-settings:`。空查询只显示搜索框；输入后在下方出现【全部】【应用】【系统】分类控件，高度随结果条数自适应。设置页【显示结果数量】控制一次展示的条数（默认 8），超过 8 条后列表内部滚动。
 
 ## 托盘
