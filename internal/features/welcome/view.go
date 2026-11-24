@@ -14,40 +14,10 @@ func (m *Module) View(c *ui.Context) {
 	theme.Apply(c)
 	ui.Column(c).Fill().Padding(theme.Space(8)).Gap(theme.Space(5)).Children(func() {
 		ui.Column(c).Gap(theme.Space(1)).Children(func() {
-			mygoui.Heading(c, 1, locales.T("title"))
+			mygoui.Heading(c, int(theme.TypeH1), locales.T("title"))
 			mygoui.Typography(c, locales.T("subtitle"), mygoui.TypographyOptions{
 				Type: theme.TypeBody,
 			})
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
-		})
-		ui.Row(c).Gap(theme.Space(4)).Children(func() {
-			m.card(c, locales.T("hint_sidebar"))
 		})
 		m.demoSection(c)
 	})

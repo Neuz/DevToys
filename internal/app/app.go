@@ -2,7 +2,6 @@
 package app
 
 import (
-	"fmt"
 	"log/slog"
 
 	"github.com/Neuz/DevToys/internal/config"
@@ -40,8 +39,8 @@ func Run() error {
 	}
 
 	opts := shell.Options{
-		Title:     mygo.App.Name(),
-		Subtitle:  fmt.Sprintf("v%s", mygo.App.Version()),
+		Title: mygo.App.Name(),
+		// Subtitle:  fmt.Sprintf("v%s", mygo.App.Version()),
 		Modules:   setupModules(),
 		Width:     800,
 		Height:    550,

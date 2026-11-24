@@ -1,9 +1,6 @@
 package launcher
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/Cyenoch/mygoicons/lucide"
 	"github.com/Cyenoch/mygoui"
 	"github.com/Cyenoch/mygoui/form"
@@ -19,7 +16,7 @@ func (m *Module) View(c *ui.Context) {
 	enabled := m.Enabled()
 	ui.Column(c).Fill().Padding(theme.Space(8)).Gap(theme.Space(5)).Children(func() {
 		ui.Column(c).Gap(theme.Space(1)).Children(func() {
-			mygoui.Heading(c, 1, locales.T("title"))
+			mygoui.Heading(c, int(theme.TypeH1), locales.T("title"))
 			mygoui.Typography(c, locales.T("subtitle"), mygoui.TypographyOptions{
 				Type: theme.TypeBody,
 			})
@@ -73,9 +70,8 @@ func (m *Module) View(c *ui.Context) {
 					},
 				},
 				{
-					Icon:     lucide.Database(),
-					Title:    locales.T("settings_index"),
-					Subtitle: m.indexSummary(),
+					Icon:  lucide.Database(),
+					Title: locales.T("settings_index"),
 					Trailing: func() {
 						mygoui.Button(c, mygoui.ButtonOptions{
 							Label:   locales.T("settings_rebuild"),
@@ -134,31 +130,6 @@ func (m *Module) notifyIndexResult(c *ui.Context) {
 		return
 	}
 	overlay.Toast(c, &m.toasts, opts)
-}
-
-// indexSummary 返回索引文件的位置与大小，供设置页展示。
-func (m *Module) indexSummary() string {
-	path, err := dbPath()
-	if err != nil {
-		return "—"
-	}
-	size := "—"
-	if info, err := os.Stat(path); err == nil {
-		size = formatBytes(info.Size())
-	}
-	return path + " · " + size
-}
-
-// formatBytes 把字节数格式化为 B / KB / MB。
-func formatBytes(n int64) string {
-	switch {
-	case n < 1<<10:
-		return fmt.Sprintf("%d B", n)
-	case n < 1<<20:
-		return fmt.Sprintf("%.0f KB", float64(n)/(1<<10))
-	default:
-		return fmt.Sprintf("%.1f MB", float64(n)/(1<<20))
-	}
 }
 
 // setEnabled 把开关状态写回配置，并让外壳立即生效（重新绑定快捷键）。
