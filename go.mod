@@ -22,10 +22,10 @@ require (
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/cloudflare/circl v1.6.5 // indirect
 	github.com/ebitengine/purego v0.11.3 // indirect
-	github.com/gen2brain/shm v0.1.0 // indirect
+	github.com/gen2brain/shm v0.2.2 // indirect
 	github.com/go-text/typesetting v0.3.5 // indirect
-	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/jezek/xgb v1.1.1 // indirect
+	github.com/godbus/dbus/v5 v5.2.4 // indirect
+	github.com/jezek/xgb v1.3.1 // indirect
 	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/lxn/win v0.0.0-20210218163916-a377121e959e // indirect
 	github.com/ulikunitz/xz v0.5.17 // indirect
