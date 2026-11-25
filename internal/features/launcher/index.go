@@ -187,7 +187,13 @@ func entriesFromApps(apps []mygo.InstalledApp) []Entry {
 		seen[key] = struct{}{}
 		title := strings.TrimSpace(app.Name)
 		if title == "" {
-			title = strings.TrimSuffix(filepath.Base(app.Path), filepath.Ext(app.Path))
+			// Path 恒为 Windows 风格（shell:AppsFolder\...），不能用 filepath.Base：
+			// 非 Windows 平台不认反斜杠分隔符。
+			name := app.Path
+			if i := strings.LastIndexAny(name, `\/`); i >= 0 {
+				name = name[i+1:]
+			}
+			title = strings.TrimSuffix(name, filepath.Ext(name))
 		}
 		keywords := title
 		alias := appAlias(app)

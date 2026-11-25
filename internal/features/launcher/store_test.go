@@ -63,8 +63,17 @@ func TestStoreUsageRoundTrip(t *testing.T) {
 	if err := st.SaveUsage(usage); err != nil {
 		t.Fatal(err)
 	}
-	if got := st.Usage(); !reflect.DeepEqual(got, usage) {
-		t.Errorf("usage = %+v, want %+v", got, usage)
+	got := st.Usage()
+	if len(got) != len(usage) {
+		t.Fatalf("usage = %+v, want %d entries", got, len(usage))
+	}
+	for k, want := range usage {
+		g, ok := got[k]
+		// JSON 往返后 time.Time 的 Location 指针会变（Local ↔ UTC），
+		// DeepEqual 会误报；按时刻语义比较。
+		if !ok || g.Count != want.Count || !g.Last.Equal(want.Last) {
+			t.Errorf("usage[%s] = %+v, want %+v", k, g, want)
+		}
 	}
 }
 
