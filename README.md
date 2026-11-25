@@ -1,21 +1,24 @@
 # DevToys
 
-用 Go 写的桌面开发工具箱骨架：原生窗口（[mygo](https://github.com/egoist/mygo)）+ 组件库（[mygoui](https://github.com/Cyenoch/mygoui)）。左侧 Sidebar 导航、自绘标题栏、常驻托盘，主题与界面语言都可在运行时切换。
+用 Go 写的桌面开发工具箱：原生窗口（[mygo](https://github.com/egoist/mygo)）+ 组件库（[mygoui](https://github.com/Cyenoch/mygoui)）。左侧 Sidebar 导航、自绘标题栏、常驻托盘，主题与界面语言都可在运行时切换。
 
 ## 文档
 
-- [需求与范围](docs/requirements.md)：功能清单、优先级、明确的非目标
-- [架构设计](docs/architecture.md)：模块划分、数据流、关键接口
-- [开发进度](docs/progress.md)：已完成、进行中、待办、已知问题
-- [启动器](docs/features/launcher.md)：全局快速启动功能说明
-- [划词翻译](docs/features/translate.md)：取词、浮窗与翻译渠道的方案设计（未实现）
-- [网络代理](docs/architecture.md#网络代理)：外壳「网络」分类与全局代理
+- [外壳](docs/shell.md)：主窗口、侧栏、设置、主题与语言、托盘、全局快捷键、网络代理
+- [架构设计](docs/architecture.md)：分层依赖、契约、线程模型、扩展方式
+- [启动器](docs/features/launcher.md)：全局快速启动
+- [划词翻译](docs/features/translate.md)：取词与多服务翻译浮窗
+- [截图](docs/features/screenshot.md)：选区、标注、剪贴板与保存
+- [二维码](docs/features/qrcode.md)：二维码生成与导出
 
 ## 当前功能
 
 - **外壳**：自绘标题栏、可折叠侧栏、独立设置窗口、托盘、全局快捷键、检查更新。
 - **外观与语言**：`system` / `light` / `dark`，`system` / `en` / `zh-Hans`，切换即时生效并写入配置。
 - **启动器**：默认 `Alt+F` 唤起搜索面板，索引开始菜单应用与 Windows 系统设置，支持拼音与使用频率排序。
+- **划词翻译**：默认 `Alt+T` 读取前台选区，浮窗展示 Google / 哔哩哔哩多服务结果，支持拖动、固定与语言互换。
+- **截图**：默认 `Ctrl+Alt+A` 冻结屏幕，框选 / 点选窗口，标注（矩形 / 圆形 / 划线 / 箭头 / 画笔 / 马赛克 / 文本），选区缩放平移与标记移动，完成写剪贴板、Ctrl+S 另存为。
+- **二维码**：文本生成二维码，可调尺寸、纠错级别与前景/背景色，复制或保存 PNG。
 - **可扩展**：每个功能拥有独立的配置节点、文案目录与后台任务 runner。
 
 ## 快速开始
@@ -43,7 +46,7 @@ cmd/devtoys/        入口：单实例锁 + app.Run
 internal/app/       装配：配置、日志、模块、外壳、托盘
 internal/shell/     外壳：窗口、侧栏、标题栏、设置窗口、托盘、快捷键注册
 internal/contract/  外壳 ↔ 功能的唯一契约
-internal/features/  功能页：welcome（示例）、launcher、qrcode
+internal/features/  功能页：welcome（示例）、launcher、translate、screenshot、qrcode
 internal/task/      后台任务，结果回到主线程
 internal/config/    config.json 读写与规范化
 internal/logging/   slog 日志器
