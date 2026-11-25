@@ -10,8 +10,6 @@
   "settings_bilibili": "哔哩哔哩",
   "settings_target": "目标语言",
   "settings_follow_cursor": "浮窗跟随鼠标",
-  "settings_privacy": "原文会发送给已启用的翻译服务。",
-  "settings_disabled_hint": "翻译功能已禁用。",
   "settings_no_provider": "至少启用一个翻译服务。",
   "target_auto": "自动",
   "target_zh_hans": "简体中文",

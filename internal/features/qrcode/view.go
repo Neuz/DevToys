@@ -82,7 +82,7 @@ func (m *Module) View(c *ui.Context) {
 		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
 			Rows: []mygoui.SettingsRow{
 				{
-					Icon:  lucide.Text(),
+					Icon:  lucide.LetterText(),
 					Title: locales.T("content"),
 					Trailing: func() {
 						form.Input(c, &m.qrValue, form.InputOptions{

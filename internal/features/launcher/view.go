@@ -24,7 +24,6 @@ func (m *Module) View(c *ui.Context) {
 		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
 			Rows: []mygoui.SettingsRow{
 				{
-					Icon:  lucide.Search(),
 					Title: locales.T("settings_enable"),
 					Trailing: func() {
 						form.Switch(c, form.SwitchOptions{

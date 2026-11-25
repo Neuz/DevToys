@@ -10,8 +10,6 @@
   "settings_bilibili": "Bilibili",
   "settings_target": "Target language",
   "settings_follow_cursor": "Follow the mouse",
-  "settings_privacy": "The source text is sent to the enabled services.",
-  "settings_disabled_hint": "Translation is disabled.",
   "settings_no_provider": "Enable at least one translation service.",
   "target_auto": "Auto",
   "target_zh_hans": "Simplified Chinese",

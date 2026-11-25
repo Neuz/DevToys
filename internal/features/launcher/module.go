@@ -105,7 +105,7 @@ func (m *Module) Group() string { return "" }
 func (m *Module) Title() string { return locales.T("title") }
 
 // Icon 让折叠后的侧栏显示为搜索图标。
-func (m *Module) Icon() *ui.SVG { return lucide.Search() }
+func (m *Module) Icon() *ui.SVG { return lucide.Play() }
 
 // Init 绑定外壳、打开索引数据库，并加载缓存后触发一次后台重建。
 func (m *Module) Init(h contract.Host) {
