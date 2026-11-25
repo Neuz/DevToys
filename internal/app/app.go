@@ -8,6 +8,7 @@ import (
 	"github.com/Neuz/DevToys/internal/contract"
 	"github.com/Neuz/DevToys/internal/features/launcher"
 	qrcode "github.com/Neuz/DevToys/internal/features/qrcode"
+	"github.com/Neuz/DevToys/internal/features/screenshot"
 	"github.com/Neuz/DevToys/internal/features/translate"
 	"github.com/Neuz/DevToys/internal/features/welcome"
 	"github.com/Neuz/DevToys/internal/logging"
@@ -23,6 +24,7 @@ func setupModules() []contract.Module {
 		launcher.New(),
 		qrcode.New(),
 		translate.New(),
+		screenshot.New(),
 	}
 }
 

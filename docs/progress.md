@@ -1,6 +1,6 @@
 # 开发进度
 
-> 更新于 2026-11-24，对应版本 `0.0.1`（见 [mygo.json](../mygo.json)）。
+> 更新于 2026-11-25，对应版本 `0.0.1`（见 [mygo.json](../mygo.json)）。
 
 ## 已完成
 
@@ -47,6 +47,7 @@
 - [ ] 启动器非 Windows 平台的内置条目（或明确保持 Windows-only 并在界面说明）。
 - [ ] 启动器索引重建的进度/耗时反馈（目前只有完成后的 Toast）。
 - [x] 划词翻译首版：Windows UI Automation 取词 + 启动器风格浮窗 + Google / 哔哩哔哩多服务，配置放在 `features.translate`；默认只启用哔哩哔哩，不做自动划词与 OCR。面板支持拖动、固定、结果滚动、单卡片折叠与源/目标语言互换。已通过 `go build ./...`、`go vet ./internal/...`、`go test ./...`、`go tool mygo i18n check .`。
+- [x] QQ 截图式截屏（[方案](features/screenshot.md)）：`Ctrl+Alt+A`（可改键）触发，先抓屏后显示每显示器冻结覆盖层，矩形拖拽与窗口点选（EnumWindows z-order + IsIconic/DWMWA_CLOAKED 过滤，边界取 DWMWA_EXTENDED_FRAME_BOUNDS 贴合可见轮廓，选区左上角显示尺寸）；标注为 `[]Shape` 矢量列表架构（交互用 Painter 预览，仅完成/保存时 image/draw 光栅化），工具含矩形/圆形/划线/箭头/画笔/马赛克（涂抹/框选子栏切换）/文本，工具栏为真实 mygoui 组件（navigation.Toolbar + ToggleButton + form.Slider + color.ColorSwatchPicker，子栏单行同高、滑杆定宽防挤压）；选区支持 8 向手柄缩放与整体平移，标记/文本支持点选移动（toolNone 状态）；文本就地编辑（TextInputBase，EditableText 风格，Enter 提交），光栅化加载系统字体（微软雅黑回退链，无内嵌字体）；完成写剪贴板（`mygo.Clipboard.WriteImage`，Enter 快捷键），保存走系统另存为对话框（`mygo.Dialog.Save`，Ctrl+S 快捷键，不记忆目录），取消（Esc/右键）退出截图，设置页含开关与快捷键；配置在 `features.screenshot`。模块已按职责分层（overlay 状态 / input 状态机 / adjust 调整 / geometry 换算 / paint 预览 / render 光栅化）。已通过 `go build ./internal/...`、`go vet ./internal/...`、`go test ./...`、`go tool mygo i18n check .`。
 - [ ] 新增实用工具页（在现有契约下逐个添加）。
 
 ### 后续候选（当前为非目标）
