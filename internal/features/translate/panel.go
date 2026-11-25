@@ -14,6 +14,7 @@ import (
 	"github.com/Cyenoch/mygoui/list"
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/features/translate/locales"
+	"github.com/Neuz/DevToys/internal/task"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
@@ -48,14 +49,22 @@ func (m *Module) toggleMain() {
 	m.readSelectionThenShow()
 }
 
-// readSelectionThenShow 在后台读取选区，结果回到主线程应用。
+// readSelectionThenShow 在 Runner 上读取选区，结果回到主线程应用；
+// 同 key 的新任务会取消旧读取，被顶替或关闭时不再回调。
 func (m *Module) readSelectionThenShow() {
-	go func() {
-		ctx, cancel := context.WithTimeout(m.lifeCtx, selectionTimeout)
+	if m.tasks == nil {
+		return
+	}
+	task.Go(m.tasks, "selection", func(ctx context.Context) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, selectionTimeout)
 		defer cancel()
 		selection, err := Read(ctx)
+		if ctx.Err() != nil {
+			return struct{}{}, ctx.Err()
+		}
 		mygo.RunOnMain(func() { m.applySelection(selection, err) })
-	}()
+		return struct{}{}, nil
+	})
 }
 
 // applySelection 把取词结果落到面板：有文本替换并翻译，无文本只提示。
@@ -633,17 +642,21 @@ func (m *Module) translateProvider(id string) {
 	if m.panel != nil {
 		m.panel.Invalidate()
 	}
-	go func() {
-		ctx, cancel := context.WithTimeout(m.lifeCtx, providerTimeout)
+	task.Go(m.tasks, "retry:"+id, func(ctx context.Context) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, providerTimeout)
 		defer cancel()
 		res, err := provider.Translate(ctx, Request{Text: text, Source: source, Target: target})
+		if ctx.Err() != nil {
+			return struct{}{}, ctx.Err()
+		}
 		mygo.RunOnMain(func() {
 			if gen != m.gen {
 				return
 			}
 			m.applyResult(gen, provider, res, err)
 		})
-	}()
+		return struct{}{}, nil
+	})
 }
 
 // applyResult 把单个服务的结果写入对应卡片；过期结果直接丢弃。

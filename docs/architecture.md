@@ -118,6 +118,13 @@ DevToys/
 - `Runner.Close` 取消全部任务并等待 goroutine 退出；每个模块拥有独立 runner，随外壳退出一起关闭。
 - 功能在 `View` 的帧里读取 `Result` 的 `Running` / `Value` / `Err`，不要在后台 goroutine 中直接改 UI 状态。
 
+**约束：后台任务一律优先使用 `task.Go`，尽量不要在功能模块里手写 `go func()`。**
+
+- 可顶替的单任务（搜索、重建、取词、重试）必须走 `task.Go`：同 key 自动取消旧任务，`Runner.Close` 保证退出时不留悬挂 goroutine。
+- 一轮扇出多任务（如翻译的多服务并行）可以用 goroutine，但必须由带超时的 `context` + generation 管理生命周期，且模块退出时 context 被取消。
+- 允许的例外只有两类，须在代码注释说明原因：平台 API 要求在独立线程执行且不能被 `Close` 等待（如 COM 调用）；`time.AfterFunc` 这类标准库定时器回调。
+- code review 与新功能实现按此约束自查；参考实现见 `features/launcher`（索引重建）与 `features/translate`（取词 / 重试走 `task.Go`，扇出走 context）。
+
 ### 启动器索引
 
 启动器在 `Init` 中先同步读取 bbolt 缓存，随后用 `task.Go` 在后台重建索引，构建完成时把新索引写回缓存；结果在下一帧（设置页或面板）通过 `applyIndexResult` 采用。搜索与排序在主线程完成，数据规模是开始菜单应用量级。细节见 [启动器](features/launcher.md)。
@@ -131,6 +138,12 @@ DevToys/
 - 设置页只管理服务开关、目标语言与快捷键；全部保存在功能节点的 `options` / `hotkeys`，不新增配置文件，也不新增第三方依赖。
 
 设计、交互、取词细节与验收矩阵见 [划词翻译](features/translate.md)。
+
+### 截图（已定稿，待实现）
+
+- 参考交互方案见 [截图](features/screenshot.md)：`Ctrl+Alt+A` 冻结屏幕（`kbinani/screenshot` 抓屏）→ 每显示器全屏覆盖层框选 / 窗口识别 → 矩形、箭头、马赛克标注（图层模型，撤销/重做）→ 保存 / 取消 / 完成（写剪贴板）。
+- 规划结构为 `features/screenshot`，契约复用 `Module` + `Toggleable` + `GlobalHotkeyer` + `Closer`；配置只保留 `features.screenshot` 节点的 `hotkeys.trigger`（保存动作每次弹另存为对话框，不记忆目录）。
+- 新增依赖：`github.com/kbinani/screenshot`（GDI 抓屏，纯 syscall）与 `github.com/fogleman/gg`（标注绘制）；马赛克与剪贴板 CF_DIB 自实现，保持 `CGO_ENABLED=0`。
 
 ## 新增一个工具页
 
@@ -177,7 +190,7 @@ func (m *Module) View(c *ui.Context) {
 
 3. 在 `internal/features/ping/locales/` 下放 `en.json`、`zh-Hans.json`，并照着欢迎页的 `locales.go` 写 `//go:embed`、`i18n.NewCatalog`、`i18n.Register` 和 `T(key)`。目录已按模块隔离，key 不需要加模块前缀。
 
-侧栏条目、标题栏标题和页面切换都由外壳自动完成，启动时进入模块列表的第一个页面。长时间运行的工作请走 `task.Go`，不要直接在 `View` 里阻塞。
+侧栏条目、标题栏标题和页面切换都由外壳自动完成，启动时进入模块列表的第一个页面。长时间运行的工作请走 `task.Go`，不要直接在 `View` 里阻塞；后台任务约束见[后台任务与线程模型](#后台任务与线程模型)。
 
 功能页需要发起 HTTP 请求时统一使用 `network.Client()`，不要自带 Transport；约束见[网络代理 § HTTP 客户端约束](#http-客户端约束)。
 

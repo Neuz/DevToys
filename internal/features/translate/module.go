@@ -16,6 +16,7 @@ import (
 	"github.com/Neuz/DevToys/internal/contract"
 	"github.com/Neuz/DevToys/internal/features/translate/locales"
 	"github.com/Neuz/DevToys/internal/hotkey"
+	"github.com/Neuz/DevToys/internal/task"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 )
@@ -40,6 +41,7 @@ type Module struct {
 	lifeCtx    context.Context
 	lifeCancel context.CancelFunc
 	service    *Service
+	tasks      *task.Runner
 
 	panel        *mygo.Window
 	panelHeight  int
@@ -79,6 +81,7 @@ func (m *Module) Init(h contract.Host) {
 	m.log = h.Log()
 	m.flyouts.Window = h.Window()
 	m.lifeCtx, m.lifeCancel = context.WithCancel(context.Background())
+	m.tasks = task.NewRunner(func(fn func()) { mygo.RunOnMain(fn) })
 	m.opts = decodeOptions(h.Feature())
 	m.service = NewService(m.lifeCtx, m.opts)
 	m.trigger = hotkey.Parse(m.accelerator())
@@ -89,8 +92,12 @@ func (m *Module) Init(h contract.Host) {
 	m.collapsed = make(map[string]bool)
 }
 
-// Close 释放面板、定时器与后台请求。
+// Close 释放面板、定时器与后台任务。
 func (m *Module) Close() {
+	if m.tasks != nil {
+		m.tasks.Close()
+		m.tasks = nil
+	}
 	m.hidePanel()
 	if m.copyTimer != nil {
 		m.copyTimer.Stop()
