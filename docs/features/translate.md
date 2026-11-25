@@ -27,7 +27,7 @@ glide 是一个原生 Go + MyGo 的独立划词翻译工具，和本项目技术
 2. 没有选区时按 `Alt+T`：浮窗打开并聚焦输入框，输入后自动翻译（600ms 去抖），`Ctrl+Enter` 立即翻译。
 3. 同时启用一个或多个翻译服务，结果按启用的顺序展示；单个服务失败不影响其他服务。
 4. 浮窗支持编辑原文重译、复制译文、单服务重试、折叠结果、源/目标语言互换、固定、`Esc` 关闭。
-5. 侧栏「翻译」页用于启用服务、填写微软凭证、选择目标语言与录制快捷键；所有配置放在 `features.translate` 节点。
+5. 侧栏「翻译」页用于启用服务、选择目标语言与录制快捷键；所有配置放在 `features.translate` 节点。
 6. 主题与界面语言跟随外壳，浮窗同步。
 
 ### 明确不做
@@ -88,7 +88,7 @@ glide 是一个原生 Go + MyGo 的独立划词翻译工具，和本项目技术
 │ │ 检测到英语 · 266 ms       [↻] [⧉] │ │
 │ └──────────────────────────────────┘ │
 │ ┌──────────────────────────────────┐ │
-│ │ ◎ 微软                      [⌃] │ │
+│ │ ◎ 哔哩哔哩                   [⌃] │ │
 │ │ 译文……                           │ │
 │ │ 检测到英语 · 342 ms       [↻] [⧉] │ │
 │ └──────────────────────────────────┘ │
@@ -118,7 +118,9 @@ internal/features/translate/
   selection_windows.go   UI Automation 实现
   selection_other.go     unsupported 实现
   service.go             配置解码、语言决策、并行调度、request generation
-  provider.go            Provider 接口、HTTP 辅助 + Google / 微软 / 哔哩哔哩
+  provider.go            Provider 接口与 Request/Result（约束层）
+  google.go              Google：自带 HTTP 客户端拼装与错误处理
+  bilibili.go            哔哩哔哩：自带 HTTP 客户端拼装与错误处理
   locales/               本功能中英文文案
 ```
 
@@ -172,7 +174,6 @@ type Provider interface {
 | 服务 | 实现 | 密钥 | 限制与风险 |
 | --- | --- | --- | --- |
 | Google | `POST https://translate.googleapis.com/translate_a/single`，表单 `client=gtx&sl=auto&tl=…&dt=t&q=…` | 无 | 非官方接口；中国大陆通常需要代理；单次 ≤ 5000 字符 |
-| 微软 | 必应内置：读取 `https://www.bing.com/translator` 的会话参数后提交翻译；填写 Azure 密钥时改走 `https://api.cognitive.microsofttranslator.com/translate?api-version=3.0` | 内置免密钥；Azure 需订阅密钥 | 必应内置可能触发验证或按地区重定向，单次 ≤ 1000 字符；Azure 稳定但需自行开通 |
 | 哔哩哔哩 | `POST https://index-translate.bilibili.com/v1/chat/completions`，`model=Index-Translate-35B-A3B`，OpenAI 兼容，无需鉴权 | 无 | 免费公网接口，可能限流或调整；单次文本 ≤ 4000 字符，`max_tokens` 2048 |
 
 哔哩哔哩请求要点：
@@ -181,42 +182,25 @@ type Provider interface {
 - `temperature: 0`、`max_tokens: 2048`、`chat_template_kwargs: {"enable_thinking": false}`；响应若含 `</think>` 则截断保留后半段。
 - 兼容 OpenAI 的 `choices[0].message.content`；非 2xx 读取错误体并截断，作为该服务的独立错误展示。
 
-### 微软端点（参照 glide）
-
-实现直接对照 glide 的 [`microsoft.go`](https://github.com/anghunk/glide/blob/main/internal/translation/microsoft.go)，同一服务内分两条路径：
-
-1. **必应内置（免密钥）**
-   - `GET https://www.bing.com/translator`，带浏览器 UA 与独立 cookie jar，并记录重定向后的最终域名。
-   - 从页面提取 `params_AbusePreventionHelper = [key, token]`，以及 `IG`、`data-iid` 为主的会话标识；缺失时返回「网页可能需要验证或接口已变更」。
-   - `POST {最终域名}/ttranslatev3?isVertical=1&IG=…&IID=…`，表单字段 `fromLang / to / text / token / key`。
-   - 单次 ≤ 1000 字符；不处理验证码，遇到验证页直接作为该服务错误展示。
-2. **Azure 官方（填写密钥后优先）**
-   - `POST https://api.cognitive.microsofttranslator.com/translate?api-version=3.0&from=…&to=…`。
-   - 头：`Ocp-Apim-Subscription-Key`，配置了区域时加 `Ocp-Apim-Subscription-Region`。
-   - 请求体为 `[{"Text":"…"}]`，从 `translations[0].text` 与 `detectedLanguage.language` 取结果。
-
-两条路径共用响应解析与语言映射（`zh-CN` ↔ `zh-Hans` 等），错误信息区分「会话获取失败」「验证拦截」「密钥无效」。
-
 ### 语言
 
 - 源语言默认自动检测，只用本地启发式：假名 → `ja`；韩文 → `ko`；仅汉字 → `zh-Hans`；西里尔 → `ru`；其余拉丁 → `en`。
 - 浮窗语言行可手动指定源语言；该选择只在本次会话有效，重新呼出仍回到自动识别。
 - 目标语言默认「自动」：检测为中文时译成 `en`，否则译成 `zh-Hans`。
 - 用户显式选择目标语言后始终以配置为准；源目标相同则交换为中文/英文。
-- 各服务做语言码映射：Google `zh-CN`、微软 `zh-Hans`、哔哩哔哩使用中文语言名（简体中文、English、日本語等）。
+- 各服务做语言码映射：Google `zh-CN`、哔哩哔哩使用中文语言名（简体中文、English、日本語等）。
 
 ## 6. 设置页
 
 侧栏「翻译」页，沿用启动器的设置页风格与 `SettingsGroup`：
 
-- 服务：Google、微软、哔哩哔哩三个开关，可只启用一个或多个；全部关闭时显示「至少启用一个服务」。
-- 微软凭证：Azure 订阅密钥与区域（可留空，留空时使用免密钥的必应内置）；密钥输入框默认遮蔽。
+- 服务：Google、哔哩哔哩两个开关，可只启用一个或多个；全部关闭时显示「至少启用一个服务」。
 - 目标语言：自动 / 简体中文 / English / 日本語 / 한국어 / …
 - 浮窗：跟随鼠标。
 - 快捷键：一个 `form.HotkeyInput`，保存后调用 `Host.HotkeysChanged()` 立即重绑。
-- 隐私提示：原文会发送给已启用的服务；Azure 密钥明文保存在本机配置中。
+- 隐私提示：原文会发送给已启用的服务。
 
-默认值：哔哩哔哩启用，Google 与微软关闭；用户可在设置页按需打开一个或多个。
+默认值：哔哩哔哩启用，Google 关闭；用户可在设置页按需打开一个或多个。
 
 ## 7. 配置
 
@@ -235,10 +219,7 @@ type Provider interface {
         "panel_follows_cursor": true,
         "providers": {
           "google": false,
-          "microsoft": false,
-          "bilibili": true,
-          "microsoft_api_key": "",
-          "microsoft_region": ""
+          "bilibili": true
         }
       }
     }
@@ -249,7 +230,7 @@ type Provider interface {
 - 用 `config.DecodeOptions` 解码到带默认值的 `options`；缺失字段保留默认。
 - 保存失败时回滚内存值并提示，与启动器一致。
 - 快捷键沿用功能节点自己的 `hotkeys` map，由外壳统一注册。
-- 密钥沿用现有 `config.json` 写入方式（用户配置目录，依赖系统目录 ACL 保护）；设置页明示明文保存。日志只记录服务、耗时与错误码，不记录原文、译文或密钥。
+- 日志只记录服务、耗时与错误信息，不记录原文或译文。
 
 ## 8. 文案、主题与线程
 
@@ -263,8 +244,8 @@ type Provider interface {
 1. 只有按下快捷键或输入文本时才读取选区、发起请求；启动时不读。
 2. 不模拟按键、不修改剪贴板、不装鼠标/键盘钩子。
 3. 密码框拒绝读取；读取前后校验前台窗口，避免误读自身。
-4. 原文会发送给已启用的服务（Google / 微软 / 哔哩哔哩），设置页必须明示。
-5. 日志不记录原文、译文、Azure 密钥。
+4. 原文会发送给已启用的服务（Google / 哔哩哔哩），设置页必须明示。
+5. 日志不记录原文与译文。
 6. 请求统一走 `network.Client()`，遵循代理与例外；不自行读取环境变量。
 7. 高权限窗口读不到时提示手动输入，不做提权。
 
@@ -273,7 +254,7 @@ type Provider interface {
 ### 单测
 
 - `service_test.go`：汉字/假名/韩文/西里尔/拉丁检测、显式源语言、目标语言决策与互换。
-- `provider_test.go`：多服务并行顺序稳定、单服务失败不影响其他、取消后不回调、空文本与超长文本拒绝；`httptest` 覆盖 Google、必应会话参数、Azure 头、哔哩哔哩请求体与 `</think>` 截断。
+- `provider_test.go`：多服务并行顺序稳定、单服务失败不影响其他、取消后不回调、空文本与超长文本拒绝；`httptest` 覆盖 Google 与哔哩哔哩的请求参数、错误响应与 `</think>` 截断。
 - `panel_test.go`：边缘翻转、工作区夹紧与固定高度（纯函数）。
 - `options_test.go`：默认值、缺失字段、非法服务组合回退。
 
@@ -288,10 +269,8 @@ type Provider interface {
 | 长译文或多服务 | 结果区出现滚动条，卡片不被裁切；新原文自动滚回顶部 |
 | 点击卡片折叠按钮 | 只收起该卡片正文，再次翻译后保持该服务的折叠状态 |
 | 展开源/目标语言下拉 | 弹层正常显示且浮窗不因失焦隐藏；互换后立即重译 |
-| 同时启用三个服务 | 三张结果卡片；任一失败只影响自身 |
+| 同时启用两个服务 | 两张结果卡片；任一失败只影响自身 |
 | 只启用哔哩哔哩 | 只显示哔哩哔哩结果 |
-| 微软留空密钥 | 走必应内置；被验证页拦截时显示该服务错误，不影响其他服务 |
-| 微软填写 Azure 密钥 | 走官方接口；区域可选 |
 | Chrome / Edge 网页选区 | 可读取；浮窗不抢焦点导致第二次失败 |
 | 密码输入框 | 视为无选区，进入输入模式 |
 | 管理员记事本 | 读取失败并提示手动输入 |
@@ -308,7 +287,7 @@ type Provider interface {
 ## 11. 实施阶段
 
 1. **骨架**：取词（Windows + unsupported）、浮窗与触发流程、Google 服务、复制与关闭。
-2. **完整渠道**：微软（必应内置 + Azure）、哔哩哔哩、多服务并行、设置页与快捷键。
+2. **完整渠道**：哔哩哔哩、多服务并行、设置页与快捷键。
 3. **体验收尾**：输入去抖与取消、定位/固定、错误态、文案与验收矩阵。
 
 ## 12. 风险与取舍
@@ -317,12 +296,10 @@ type Provider interface {
 | --- | --- | --- |
 | UIA 覆盖不全 | 部分应用取不到选区 | 直接进入输入模式，不弹错误对话框；验收矩阵持续补充 |
 | Google 非官方接口 | 大陆无代理时不可用或变更 | 应用代理已可覆盖；服务可关闭；错误只影响该卡片 |
-| 必应内置会话失效 | 微软免密钥路径失败 | 提示配置 Azure 密钥；Azure 路径不受网页改版影响 |
 | 哔哩哔哩免费接口 | 限流、排队或调整 | 独立错误展示；可只启用其他服务；不自动重试 |
 | 全局快捷键冲突 | 无法呼出 | 外壳已检测重复并 warn；设置页可改键 |
 | 浮窗抢焦点 | 第二次取词读到自身 | 先读选区再 Show；前台 PID 过滤自身 |
 | 大文本 | 缓慢或失败 | 各服务字符上限；15s 总超时；可取消 |
-| 密钥明文 | 本机泄露风险 | 设置页明示；后续可接 DPAPI；日志脱敏 |
 
 ## 13. 与现有约束的对应
 

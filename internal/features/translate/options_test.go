@@ -15,19 +15,16 @@ func TestDefaultOptions(t *testing.T) {
 	if !opts.PanelFollowsCursor {
 		t.Fatal("PanelFollowsCursor should default to true")
 	}
-	if !opts.Providers.Bilibili || opts.Providers.Google || opts.Providers.Microsoft {
+	if !opts.Providers.Bilibili || opts.Providers.Google {
 		t.Fatalf("providers = %+v, want only bilibili", opts.Providers)
 	}
 }
 
 func TestDecodeOptionsKeepsDefaults(t *testing.T) {
-	node := &config.Feature{Options: json.RawMessage(`{"providers":{"google":true,"microsoft_api_key":"  key  "}}`)}
+	node := &config.Feature{Options: json.RawMessage(`{"providers":{"google":true}}`)}
 	opts := decodeOptions(node)
 	if !opts.Providers.Google || !opts.Providers.Bilibili {
 		t.Fatalf("providers = %+v, want google and bilibili", opts.Providers)
-	}
-	if opts.Providers.MicrosoftAPIKey != "key" {
-		t.Fatalf("api key = %q, want trimmed key", opts.Providers.MicrosoftAPIKey)
 	}
 	if !opts.PanelFollowsCursor || opts.Target != langAuto {
 		t.Fatalf("defaults lost: %+v", opts)
@@ -48,9 +45,9 @@ func TestDecodeOptionsMissingNode(t *testing.T) {
 }
 
 func TestNewServiceProviderOrder(t *testing.T) {
-	svc := NewService(nil, options{Providers: providerOptions{Google: true, Microsoft: true, Bilibili: true}})
+	svc := NewService(nil, options{Providers: providerOptions{Google: true, Bilibili: true}})
 	ids := svc.IDs()
-	want := []string{providerGoogle, providerMicrosoft, providerBilibili}
+	want := []string{providerGoogle, providerBilibili}
 	if len(ids) != len(want) {
 		t.Fatalf("IDs() = %v, want %v", ids, want)
 	}

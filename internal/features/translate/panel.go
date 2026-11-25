@@ -741,8 +741,6 @@ func providerTitle(id string) string {
 	switch id {
 	case providerGoogle:
 		return locales.T("provider_google")
-	case providerMicrosoft:
-		return locales.T("provider_microsoft")
 	case providerBilibili:
 		return locales.T("provider_bilibili")
 	default:
@@ -755,8 +753,6 @@ func providerIcon(id string) *ui.SVG {
 	switch id {
 	case providerGoogle:
 		return lucide.Search()
-	case providerMicrosoft:
-		return lucide.Globe()
 	case providerBilibili:
 		return lucide.Languages()
 	default:

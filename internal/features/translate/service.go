@@ -23,13 +23,10 @@ type options struct {
 	Providers          providerOptions `json:"providers"`
 }
 
-// providerOptions 是各服务的开关与微软凭证。
+// providerOptions 是各服务的开关。
 type providerOptions struct {
-	Google          bool   `json:"google"`
-	Microsoft       bool   `json:"microsoft"`
-	Bilibili        bool   `json:"bilibili"`
-	MicrosoftAPIKey string `json:"microsoft_api_key"`
-	MicrosoftRegion string `json:"microsoft_region"`
+	Google   bool `json:"google"`
+	Bilibili bool `json:"bilibili"`
 }
 
 // defaultOptions 返回首次运行的选择：只启用哔哩哔哩。
@@ -54,14 +51,12 @@ func decodeOptions(node *config.Feature) options {
 	return normalizeOptions(opts)
 }
 
-// normalizeOptions 修正非法目标语言并清理凭证两端空白。
+// normalizeOptions 修正非法目标语言。
 func normalizeOptions(opts options) options {
 	opts.Target = strings.TrimSpace(opts.Target)
 	if !knownTarget(opts.Target) {
 		opts.Target = langAuto
 	}
-	opts.Providers.MicrosoftAPIKey = strings.TrimSpace(opts.Providers.MicrosoftAPIKey)
-	opts.Providers.MicrosoftRegion = strings.TrimSpace(opts.Providers.MicrosoftRegion)
 	return opts
 }
 
@@ -77,18 +72,15 @@ type Service struct {
 	base      context.Context
 }
 
-// NewService 按 Google → 微软 → 哔哩哔哩的顺序装配已启用的服务。
+// NewService 按 Google → 哔哩哔哩的顺序装配已启用的服务。
 func NewService(base context.Context, opts options) *Service {
 	if base == nil {
 		base = context.Background()
 	}
 	opts = normalizeOptions(opts)
-	providers := make([]Provider, 0, 3)
+	providers := make([]Provider, 0, 2)
 	if opts.Providers.Google {
 		providers = append(providers, newGoogleProvider())
-	}
-	if opts.Providers.Microsoft {
-		providers = append(providers, newMicrosoftProvider(opts.Providers))
 	}
 	if opts.Providers.Bilibili {
 		providers = append(providers, newBilibiliProvider())

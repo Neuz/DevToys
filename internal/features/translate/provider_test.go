@@ -9,7 +9,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
+
+	"github.com/Neuz/DevToys/internal/network"
 )
 
 func TestDecodeError(t *testing.T) {
@@ -25,7 +26,8 @@ func TestDecodeError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := decodeError([]byte(tt.body)); got != tt.want {
+			p := &googleProvider{}
+			if got := p.decodeError([]byte(tt.body)); got != tt.want {
 				t.Fatalf("decodeError(%q) = %q, want %q", tt.body, got, tt.want)
 			}
 		})
@@ -34,31 +36,33 @@ func TestDecodeError(t *testing.T) {
 
 func TestDecodeErrorTruncates(t *testing.T) {
 	body := `{"message":"` + strings.Repeat("x", 300) + `"}`
-	got := decodeError([]byte(body))
+	p := &googleProvider{}
+	got := p.decodeError([]byte(body))
 	if len([]rune(got)) != 241 || !strings.HasSuffix(got, "…") {
 		t.Fatalf("decodeError length = %d, want 241 with ellipsis", len([]rune(got)))
 	}
 }
 
 func TestHTTPError(t *testing.T) {
-	if err := httpError(http.StatusUnauthorized, nil); err == nil || err.Error() != "认证失败，请检查密钥" {
+	p := &googleProvider{}
+	if err := p.httpError(http.StatusUnauthorized, nil); err == nil || err.Error() != "认证失败" {
 		t.Fatalf("401 error = %v", err)
 	}
-	err := httpError(http.StatusBadRequest, []byte(`{"error":{"message":"bad"}}`))
+	err := p.httpError(http.StatusBadRequest, []byte(`{"error":{"message":"bad"}}`))
 	if err == nil || !strings.Contains(err.Error(), "HTTP 400") || !strings.Contains(err.Error(), "bad") {
 		t.Fatalf("400 error = %v", err)
 	}
 }
 
-func TestDoWithClientContextTimeout(t *testing.T) {
+func TestGoogleSendContextTimeout(t *testing.T) {
+	p := &googleProvider{client: network.Client}
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://127.0.0.1:1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(request.Context(), 0)
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
 	defer cancel()
-	request = request.WithContext(ctx)
-	_, err = doWithClient(ctx, httpClient(), request)
+	_, err = p.send(ctx, request.WithContext(ctx))
 	if err == nil || !errors.Is(err, context.DeadlineExceeded) && !strings.Contains(err.Error(), "超时") {
 		t.Fatalf("err = %v, want timeout", err)
 	}
@@ -106,7 +110,7 @@ func TestGoogleTranslate(t *testing.T) {
 }
 
 func TestGoogleTooLong(t *testing.T) {
-	p := &googleProvider{endpoint: "http://127.0.0.1:1", client: httpClient}
+	p := &googleProvider{endpoint: "http://127.0.0.1:1", client: network.Client}
 	_, err := p.Translate(context.Background(), Request{Text: strings.Repeat("a", googleMaxRunes+1)})
 	if err == nil || !strings.Contains(err.Error(), "5000") {
 		t.Fatalf("err = %v, want length error", err)
@@ -121,150 +125,6 @@ func TestGoogleEmptyResult(t *testing.T) {
 	p := &googleProvider{endpoint: server.URL, client: server.Client}
 	if _, err := p.Translate(context.Background(), Request{Text: "hello"}); err == nil || !strings.Contains(err.Error(), "未返回译文") {
 		t.Fatalf("err = %v, want no result", err)
-	}
-}
-
-func TestMicrosoftBingTranslate(t *testing.T) {
-	var form map[string]string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/translator":
-			_, _ = w.Write([]byte(`<html><script>var params_AbusePreventionHelper = [123456,"tok"];</script>
-<script>IG:"ABC123"</script><div data-iid="translator.5024"></div></html>`))
-		case "/ttranslatev3":
-			if err := r.ParseForm(); err != nil {
-				t.Errorf("parse form: %v", err)
-			}
-			form = map[string]string{
-				"fromLang": r.PostFormValue("fromLang"),
-				"to":       r.PostFormValue("to"),
-				"text":     r.PostFormValue("text"),
-				"token":    r.PostFormValue("token"),
-				"key":      r.PostFormValue("key"),
-				"IG":       r.URL.Query().Get("IG"),
-				"IID":      r.URL.Query().Get("IID"),
-			}
-			_, _ = w.Write([]byte(`[{"detectedLanguage":{"language":"en"},"translations":[{"text":"你好"}]}]`))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-
-	p := &microsoftProvider{
-		pageEndpoint:  server.URL + "/translator",
-		azureEndpoint: server.URL + "/translate",
-		client:        func() *http.Client { return server.Client() },
-	}
-	res, err := p.Translate(context.Background(), Request{Text: "hello", Source: "en", Target: "zh-Hans"})
-	if err != nil {
-		t.Fatalf("Translate: %v", err)
-	}
-	if res.Text != "你好" || res.Detected != "en" {
-		t.Fatalf("result = %+v", res)
-	}
-	want := map[string]string{
-		"fromLang": "en", "to": "zh-Hans", "text": "hello", "token": "tok", "key": "123456",
-		"IG": "ABC123", "IID": "translator.5024.1",
-	}
-	for key, value := range want {
-		if form[key] != value {
-			t.Fatalf("form[%s] = %q, want %q", key, form[key], value)
-		}
-	}
-}
-
-func TestMicrosoftBingMissingSession(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`<html>no session</html>`))
-	}))
-	defer server.Close()
-	p := &microsoftProvider{
-		pageEndpoint: server.URL,
-		client:       func() *http.Client { return server.Client() },
-	}
-	_, err := p.Translate(context.Background(), Request{Text: "hello", Source: "en", Target: "zh-Hans"})
-	if err == nil || !strings.Contains(err.Error(), "验证") {
-		t.Fatalf("err = %v, want verification error", err)
-	}
-}
-
-func TestMicrosoftAzureTranslate(t *testing.T) {
-	var header http.Header
-	var query map[string][]string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header = r.Header.Clone()
-		query = r.URL.Query()
-		var body []map[string]string
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Errorf("decode body: %v", err)
-		}
-		if len(body) != 1 || body[0]["Text"] != "hello" {
-			t.Errorf("body = %+v", body)
-		}
-		_, _ = w.Write([]byte(`[{"detectedLanguage":{"language":"en"},"translations":[{"text":"你好"}]}]`))
-	}))
-	defer server.Close()
-
-	p := &microsoftProvider{
-		apiKey:        "secret",
-		region:        "eastasia",
-		azureEndpoint: server.URL,
-		client:        func() *http.Client { return server.Client() },
-	}
-	res, err := p.Translate(context.Background(), Request{Text: "hello", Source: "en", Target: "zh-Hans"})
-	if err != nil {
-		t.Fatalf("Translate: %v", err)
-	}
-	if res.Text != "你好" {
-		t.Fatalf("Text = %q", res.Text)
-	}
-	if header.Get("Ocp-Apim-Subscription-Key") != "secret" ||
-		header.Get("Ocp-Apim-Subscription-Region") != "eastasia" {
-		t.Fatalf("headers = %v", header)
-	}
-	if query["api-version"][0] != "3.0" || query["to"][0] != "zh-Hans" || query["from"][0] != "en" {
-		t.Fatalf("query = %v", query)
-	}
-}
-
-func TestMicrosoftAzureOmitsSourceForAuto(t *testing.T) {
-	var query map[string][]string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		query = r.URL.Query()
-		_, _ = w.Write([]byte(`[{"translations":[{"text":"x"}]}]`))
-	}))
-	defer server.Close()
-	p := &microsoftProvider{apiKey: "k", azureEndpoint: server.URL, client: func() *http.Client { return server.Client() }}
-	if _, err := p.Translate(context.Background(), Request{Text: "hi", Source: "auto", Target: "zh-Hans"}); err != nil {
-		t.Fatalf("Translate: %v", err)
-	}
-	if _, ok := query["from"]; ok {
-		t.Fatalf("from should be omitted, query = %v", query)
-	}
-}
-
-func TestMicrosoftTooLong(t *testing.T) {
-	p := &microsoftProvider{client: httpClient}
-	_, err := p.Translate(context.Background(), Request{Text: strings.Repeat("a", microsoftMaxRunes+1)})
-	if err == nil || !strings.Contains(err.Error(), "1000") {
-		t.Fatalf("err = %v, want length error", err)
-	}
-}
-
-func TestMicrosoftHTTPError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusUnauthorized)
-	}))
-	defer server.Close()
-	p := &microsoftProvider{apiKey: "bad", azureEndpoint: server.URL, client: func() *http.Client { return server.Client() }}
-	start := time.Now()
-	_, err := p.Translate(context.Background(), Request{Text: "hello"})
-	if err == nil || !strings.Contains(err.Error(), "认证失败") {
-		t.Fatalf("err = %v, want auth error", err)
-	}
-	if time.Since(start) > time.Second {
-		t.Fatal("unexpected delay")
 	}
 }
 

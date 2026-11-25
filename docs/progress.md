@@ -46,7 +46,7 @@
 - [ ] 为 `internal/shell` 补回归测试：用 `ui.NewTester` 渲染外壳，覆盖导航切换、主题/语言刷新、快捷键注册与重绑。
 - [ ] 启动器非 Windows 平台的内置条目（或明确保持 Windows-only 并在界面说明）。
 - [ ] 启动器索引重建的进度/耗时反馈（目前只有完成后的 Toast）。
-- [x] 划词翻译首版：Windows UI Automation 取词 + 启动器风格浮窗 + Google / 微软 / 哔哩哔哩多服务，配置放在 `features.translate`；默认只启用哔哩哔哩，不做自动划词与 OCR。面板支持拖动、固定、结果滚动、单卡片折叠与源/目标语言互换。已通过 `go build ./...`、`go vet ./internal/...`、`go test ./...`、`go tool mygo i18n check .`。
+- [x] 划词翻译首版：Windows UI Automation 取词 + 启动器风格浮窗 + Google / 哔哩哔哩多服务，配置放在 `features.translate`；默认只启用哔哩哔哩，不做自动划词与 OCR。面板支持拖动、固定、结果滚动、单卡片折叠与源/目标语言互换。已通过 `go build ./...`、`go vet ./internal/...`、`go test ./...`、`go tool mygo i18n check .`。
 - [ ] 新增实用工具页（在现有契约下逐个添加）。
 
 ### 后续候选（当前为非目标）

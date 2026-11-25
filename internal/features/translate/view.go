@@ -7,6 +7,11 @@ import (
 	"github.com/Cyenoch/mygoui/theme"
 	"github.com/Neuz/DevToys/internal/features/translate/locales"
 	"github.com/egoist/mygo/ui"
+	ailogo "github.com/yldm-tech/ai-logo/mygo"
+)
+
+const (
+	controlWidth = 200
 )
 
 // View 绘制翻译设置页：启用、快捷键、服务、语言与隐私说明。
@@ -23,7 +28,6 @@ func (m *Module) View(c *ui.Context) {
 		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
 			Rows: []mygoui.SettingsRow{
 				{
-					Icon:  lucide.Languages(),
 					Title: locales.T("settings_enable"),
 					Trailing: func() {
 						form.Switch(c, form.SwitchOptions{
@@ -33,7 +37,7 @@ func (m *Module) View(c *ui.Context) {
 					},
 				},
 				{
-					Icon:  lucide.Command(),
+					Icon:  lucide.Keyboard(),
 					Title: locales.T("settings_hotkey"),
 					Trailing: func() {
 						form.HotkeyInput(c, &m.trigger, form.HotkeyInputOptions{
@@ -41,78 +45,9 @@ func (m *Module) View(c *ui.Context) {
 							Placeholder: locales.T("settings_hotkey_unset"),
 							Clearable:   true,
 							OnChange:    m.changeTrigger,
-						})
+						}).Width(theme.Scale(c, controlWidth))
 					},
 				},
-			},
-		})
-		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
-			Title: locales.T("settings_services"),
-			Rows: []mygoui.SettingsRow{
-				{
-					Icon:  lucide.Globe(),
-					Title: locales.T("settings_google"),
-					Trailing: func() {
-						form.Switch(c, form.SwitchOptions{
-							On: &m.opts.Providers.Google,
-							OnChange: func(value bool) {
-								m.opts.Providers.Google = value
-								m.changeOptions()
-							},
-						})
-					},
-				},
-				{
-					Icon:     lucide.Languages(),
-					Title:    locales.T("settings_microsoft"),
-					Subtitle: locales.T("settings_microsoft_hint"),
-					Trailing: func() {
-						form.Switch(c, form.SwitchOptions{
-							On: &m.opts.Providers.Microsoft,
-							OnChange: func(value bool) {
-								m.opts.Providers.Microsoft = value
-								m.changeOptions()
-							},
-						})
-					},
-				},
-				{
-					Icon:  lucide.Video(),
-					Title: locales.T("settings_bilibili"),
-					Trailing: func() {
-						form.Switch(c, form.SwitchOptions{
-							On: &m.opts.Providers.Bilibili,
-							OnChange: func(value bool) {
-								m.opts.Providers.Bilibili = value
-								m.changeOptions()
-							},
-						})
-					},
-				},
-				{
-					Icon:  lucide.KeyRound(),
-					Title: locales.T("settings_microsoft_key"),
-					Trailing: func() {
-						form.PasswordField(c, &m.opts.Providers.MicrosoftAPIKey, form.PasswordFieldOptions{
-							AriaLabel: locales.T("settings_microsoft_key"),
-							OnChange:  m.changeOptions,
-						}).Width(theme.Scale(c, 220))
-					},
-				},
-				{
-					Icon:  lucide.MapPin(),
-					Title: locales.T("settings_microsoft_region"),
-					Trailing: func() {
-						form.Input(c, &m.opts.Providers.MicrosoftRegion, form.InputOptions{
-							AriaLabel: locales.T("settings_microsoft_region"),
-							OnChange:  m.changeOptions,
-						}).Width(theme.Scale(c, 180))
-					},
-				},
-			},
-		})
-		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
-			Rows: []mygoui.SettingsRow{
 				{
 					Icon:  lucide.Languages(),
 					Title: locales.T("settings_target"),
@@ -121,7 +56,7 @@ func (m *Module) View(c *ui.Context) {
 					},
 				},
 				{
-					Icon:  lucide.MousePointer2(),
+					Icon:  lucide.MousePointerClick(),
 					Title: locales.T("settings_follow_cursor"),
 					Trailing: func() {
 						form.Switch(c, form.SwitchOptions{
@@ -135,22 +70,37 @@ func (m *Module) View(c *ui.Context) {
 				},
 			},
 		})
-		mygoui.Typography(c, locales.T("settings_privacy"), mygoui.TypographyOptions{
-			Type:  theme.TypeBodySM,
-			Muted: true,
+		mygoui.SettingsGroup(c, mygoui.SettingsGroupOptions{
+			Title: locales.T("settings_services"),
+			Rows: []mygoui.SettingsRow{
+				{
+					Icon:  ailogo.MustParse("google", ailogo.Mono),
+					Title: locales.T("settings_google"),
+					Trailing: func() {
+						form.Switch(c, form.SwitchOptions{
+							On: &m.opts.Providers.Google,
+							OnChange: func(value bool) {
+								m.opts.Providers.Google = value
+								m.changeOptions()
+							},
+						})
+					},
+				},
+				{
+					Icon:  ailogo.MustParse("bilibili", ailogo.Mono),
+					Title: locales.T("settings_bilibili"),
+					Trailing: func() {
+						form.Switch(c, form.SwitchOptions{
+							On: &m.opts.Providers.Bilibili,
+							OnChange: func(value bool) {
+								m.opts.Providers.Bilibili = value
+								m.changeOptions()
+							},
+						})
+					},
+				},
+			},
 		})
-		if !m.hasProvider() {
-			mygoui.Typography(c, locales.T("settings_no_provider"), mygoui.TypographyOptions{
-				Type:  theme.TypeBodySM,
-				Muted: true,
-			})
-		}
-		if !enabled {
-			mygoui.Typography(c, locales.T("settings_disabled_hint"), mygoui.TypographyOptions{
-				Type:  theme.TypeBodySM,
-				Muted: true,
-			})
-		}
 	})
 }
 
@@ -167,12 +117,12 @@ func (m *Module) renderTarget(c *ui.Context) {
 			m.opts.Target = keys[0]
 			m.changeOptions()
 		},
-	}).Width(theme.Scale(c, 180))
+	}).Width(theme.Scale(c, controlWidth))
 }
 
 // hasProvider 报告是否至少启用了一个服务。
 func (m *Module) hasProvider() bool {
-	return m.opts.Providers.Google || m.opts.Providers.Microsoft || m.opts.Providers.Bilibili
+	return m.opts.Providers.Google || m.opts.Providers.Bilibili
 }
 
 // targetLabel 返回目标语言的显示名。

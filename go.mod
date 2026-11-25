@@ -21,6 +21,7 @@ require (
 	github.com/go-text/typesetting v0.3.5 // indirect
 	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/ulikunitz/xz v0.5.17 // indirect
+	github.com/yldm-tech/ai-logo/mygo v1.22.0 // indirect
 	go.digitalxero.dev/rpm v0.3.4 // indirect
 	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/image v0.48.0 // indirect
